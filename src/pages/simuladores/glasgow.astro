@@ -1,0 +1,1396 @@
+---
+import '../../styles/global.css';
+---
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simulador 3D Escala de Glasgow | NeuroLab UNAH-VS</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400&family=JetBrains+Mono:wght@500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script is:inline src="https://cdn.tailwindcss.com"></script>
+    <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <style>
+      .font-editorial { font-family: 'Cormorant Garamond', Georgia, serif; }
+      .font-cuerpo { font-family: 'Plus Jakarta Sans', sans-serif; }
+      .font-tecnica { font-family: 'JetBrains Mono', monospace; }
+
+      .bg-papel-ilustracion {
+        background-color: #F6F2E9;
+        background-image: radial-gradient(#D8D0C1 0.75px, transparent 0.75px);
+        background-size: 18px 18px;
+      }
+
+      /* === ANIMACIÓN DE PANTALLA DE CARGA === */
+      @keyframes barraCarga {
+        0% { width: 0%; }
+        100% { width: 100%; }
+      }
+      @keyframes desvanecerIntro {
+        0%, 72% { opacity: 1; visibility: visible; }
+        100% { opacity: 0; visibility: hidden; pointer-events: none; }
+      }
+      @keyframes pulsoLogo {
+        0% { transform: scale(0.95); opacity: 0; }
+        40% { transform: scale(1); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      .pantalla-intro {
+        animation: desvanecerIntro 1.45s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+      }
+      .logo-animado {
+        animation: pulsoLogo 1.0s ease-out forwards;
+      }
+      .progreso-linea {
+        animation: barraCarga 1.05s ease-in-out forwards;
+      }
+
+      /* === CONSOLA Y PALANCAS CON MOVIMIENTO 100% FLUIDO === */
+      .fader-housing {
+        background: linear-gradient(180deg, #F5EFE2 0%, #E6DEC8 100%);
+        box-shadow: inset 0 1px 0 #FFFFFF, 0 2px 0 #2A324B;
+      }
+      .fader-track {
+        touch-action: none;
+        user-select: none;
+        position: relative;
+      }
+      .fader-slot {
+        width: 12px;
+        height: 100%;
+        background: linear-gradient(90deg, #0F1420 0%, #263044 50%, #0F1420 100%);
+        border: 2px solid #1E2436;
+        box-shadow: inset 0 4px 8px rgba(0,0,0,0.85), 1px 0 0 rgba(255,255,255,0.6);
+        position: relative;
+      }
+      .fader-ticks {
+        background-image: repeating-linear-gradient(
+          to bottom,
+          #647087 0px,
+          #647087 2px,
+          transparent 2px,
+          transparent 12px
+        );
+      }
+
+      /* Perilla física 3D con deslizamiento fluido */
+      .fader-knob {
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+        width: 42px;
+        height: 32px;
+        left: 2px;
+        transition: top 0.18s cubic-bezier(0.22, 1, 0.36, 1), transform 0.12s ease, box-shadow 0.15s ease;
+        box-shadow: 
+          0 6px 10px rgba(15, 20, 32, 0.45),
+          0 2px 0 #1E2436,
+          inset 0 2px 1px rgba(255, 255, 255, 0.55),
+          inset 0 -3px 2px rgba(0, 0, 0, 0.35);
+      }
+      .fader-knob::before {
+        content: '';
+        position: absolute;
+        inset: 4px 5px;
+        border-top: 1px solid rgba(255,255,255,0.4);
+        border-bottom: 1px solid rgba(0,0,0,0.3);
+        pointer-events: none;
+      }
+      .fader-knob.knob-blue {
+        background: linear-gradient(180deg, #60A5FA 0%, #2563EB 48%, #1D4ED8 52%, #1E40AF 100%);
+      }
+      .fader-knob.knob-orange {
+        background: linear-gradient(180deg, #FBBF24 0%, #D97706 48%, #B45309 52%, #92400E 100%);
+      }
+      .fader-knob.knob-green {
+        background: linear-gradient(180deg, #34D399 0%, #059669 48%, #047857 52%, #065F46 100%);
+      }
+      /* Movimiento libre y directo al arrastrar con el mouse */
+      .fader-knob.dragging {
+        cursor: grabbing;
+        transition: none !important;
+        transform: scale(1.06);
+        box-shadow: 
+          0 10px 16px rgba(15, 20, 32, 0.55),
+          0 3px 0 #1E2436,
+          inset 0 2px 1px rgba(255, 255, 255, 0.65);
+      }
+
+      .circulo-num {
+        transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+        box-shadow: 0 2px 0 #1E2436;
+      }
+      .circulo-num:hover {
+        transform: scale(1.12);
+      }
+    </style>
+  </head>
+
+  <body class="bg-papel-ilustracion text-[#1E2436] font-cuerpo min-h-screen flex flex-col justify-between selection:bg-[#0B1D3A] selection:text-white">
+
+    <!-- ==========================================
+         PANTALLA DE CARGA ANIMADA (INTRO NEUROLAB)
+         ========================================== -->
+    <div class="pantalla-intro fixed inset-0 z-50 bg-[#0B1D3A] flex flex-col items-center justify-center p-6 border-8 border-[#141413]">
+      <div class="logo-animado flex flex-col items-center max-w-md w-full text-center">
+        <img 
+          src="/logo-neurolab.png" 
+          alt="Logo NeuroLab" 
+          class="h-28 md:h-36 w-auto object-contain mb-5"
+          onerror="this.style.display='none'" 
+        />
+        <h2 class="font-editorial text-3xl md:text-4xl text-[#FAF8F5] font-bold tracking-wide mb-1">
+          NEUROLAB
+        </h2>
+        <p class="font-tecnica text-[11px] uppercase tracking-[0.25em] text-[#D4AF37] mb-5">
+          Laboratorio de Neuroanatomía // UNAH-VS
+        </p>
+        <div class="w-60 h-[2px] bg-[#FAF8F5]/20 overflow-hidden">
+          <div class="progreso-linea h-full bg-[#D4AF37]"></div>
+        </div>
+        <span class="font-tecnica text-[10px] text-[#FAF8F5]/60 uppercase tracking-widest mt-3">
+          Inicializando Simulador 3D: Escala de Glasgow...
+        </span>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         SECCIÓN 1: CABECERA COMPACTA NEUROLAB
+         ========================================== -->
+    <header class="border-b-2 border-[#1E2436] bg-[#0B1D3A] text-[#FAF8F5]">
+      <div class="max-w-7xl mx-auto px-6 py-3 flex flex-wrap justify-between items-center gap-4">
+        <div class="flex items-center gap-4">
+          <a href="/" class="border border-[#D4AF37] bg-[#071326] hover:bg-[#D4AF37] hover:text-[#141413] px-3.5 py-1.5 font-tecnica text-xs uppercase tracking-widest font-bold transition-colors">
+            ← Volver al Menú Principal
+          </a>
+          <span class="font-tecnica text-xs text-[#D4AF37] uppercase tracking-widest hidden sm:inline">
+            // NeuroLab UNAH-VS • Simulación Clínica 3D
+          </span>
+        </div>
+        <button id="btn-test-audio" type="button" class="border border-[#D4AF37]/60 bg-[#071326] hover:bg-[#D4AF37] hover:text-[#141413] px-3 py-1 font-tecnica text-[11px] text-[#D4AF37] font-bold uppercase tracking-wider cursor-pointer transition-colors">
+          🔊 Sonido Suave: ACTIVO
+        </button>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 flex-1">
+
+      <!-- ==========================================
+           SECCIÓN 2: INTRODUCCIÓN VISUAL + FOTO DE LOS CREADORES
+           ========================================== -->
+      <section class="mb-8 border-2 border-[#1E2436] bg-[#FAF8F5] p-5 sm:p-6 shadow-[5px_5px_0px_#1E2436]">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+          
+          <!-- Fotografía Histórica de Bryan Jennett y Graham Teasdale -->
+          <div class="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col items-center gap-4 border-b lg:border-b-0 lg:border-r-2 border-[#1E2436]/20 pb-4 lg:pb-0 lg:pr-6">
+            <div class="border-2 border-[#1E2436] bg-white p-2 shadow-[3px_3px_0px_#0B1D3A] w-44 sm:w-48 shrink-0">
+              <img 
+                src="/graham-bryan.jpg" 
+                alt="Bryan Jennett y Graham Teasdale" 
+                class="w-full h-44 object-cover object-top border border-[#1E2436]"
+                onerror="this.src='https://placehold.co/300x320/0B1D3A/D4AF37?text=Coloca+graham-bryan.jpg\\nen+carpeta+public'"
+              />
+              <p class="font-tecnica text-[10px] text-center text-[#1E2436] font-bold mt-1.5 leading-tight">
+                B. JENNETT & G. TEASDALE (1974)
+              </p>
+            </div>
+            <div class="text-center sm:text-left lg:text-center">
+              <span class="bg-[#0B1D3A] text-[#D4AF37] font-tecnica text-[10px] uppercase tracking-widest px-2 py-0.5 font-bold">
+                Universidad de Glasgow, Escocia
+              </span>
+              <p class="text-xs text-neutral-600 mt-1.5 leading-snug">
+                Publicada en <em>The Lancet</em> (1974) por los neurocirujanos <strong>Graham Teasdale y Bryan Jennett</strong> para estandarizar mundialmente la evaluación del coma.
+              </p>
+            </div>
+          </div>
+
+          <!-- Bloques Visuales Rápidos -->
+          <div class="lg:col-span-8 space-y-4">
+            <div>
+              <span class="font-tecnica text-xs uppercase tracking-widest text-[#B8860B] font-bold">
+                Evaluación Neurológica Estandarizada
+              </span>
+              <h1 class="font-editorial text-3xl sm:text-4xl font-bold text-[#0B1D3A] leading-none mt-0.5">
+                Escala de Coma de Glasgow (GCS)
+              </h1>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="border-2 border-[#1E2436] bg-white p-3">
+                <div class="font-tecnica text-xs font-extrabold text-[#2B6CB0] uppercase mb-1">01. ¿Qué evalúa?</div>
+                <p class="text-xs text-neutral-700 leading-relaxed">
+                  Mide la integridad del <strong>SRAA (Tronco Encefálico)</strong> y la <strong>Corteza Cerebral</strong> mediante 3 respuestas: Ocular, Verbal y Motora.
+                </p>
+              </div>
+              <div class="border-2 border-[#1E2436] bg-white p-3">
+                <div class="font-tecnica text-xs font-extrabold text-[#D97706] uppercase mb-1">02. Rango (3 a 15 pts)</div>
+                <p class="text-xs text-neutral-700 leading-relaxed">
+                  <strong>15 pts:</strong> Consciente y alerta.<br/>
+                  <strong>9–12 pts:</strong> Daño moderado.<br/>
+                  <strong>3 pts:</strong> Coma profundo (mínimo).
+                </p>
+              </div>
+              <div class="border-2 border-[#1E2436] bg-red-50 p-3">
+                <div class="font-tecnica text-xs font-extrabold text-red-700 uppercase mb-1">03. Regla de Oro Clínica</div>
+                <p class="text-xs text-neutral-800 leading-relaxed">
+                  Todo paciente con <strong>Glasgow ≤ 8 puntos</strong> pierde reflejos protectores de la vía aérea y requiere <strong>intubación endotraqueal</strong>.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SECCIÓN 3: MARCADOR SUPERIOR DE PUNTAJE
+           ========================================== -->
+      <section class="mb-5 text-center">
+        <div class="inline-flex flex-wrap justify-center gap-2 sm:gap-3 mb-2">
+          <div class="flex items-baseline justify-between gap-4 bg-[#FAF8F5] border-2 border-[#2A324B] border-l-[7px] border-l-[#2B6CB0] px-4 py-1.5 min-w-[130px] shadow-[2px_2px_0px_#2A324B]">
+            <span class="font-tecnica text-xs font-extrabold tracking-wider text-[#2B6CB0]">OCULAR</span>
+            <span class="font-tecnica text-xl font-extrabold text-[#1E2436]"><strong id="top-e">4</strong><small class="text-xs text-neutral-400">/4</small></span>
+          </div>
+
+          <div class="flex items-baseline justify-between gap-4 bg-[#FAF8F5] border-2 border-[#2A324B] border-l-[7px] border-l-[#D97706] px-4 py-1.5 min-w-[130px] shadow-[2px_2px_0px_#2A324B]">
+            <span class="font-tecnica text-xs font-extrabold tracking-wider text-[#D97706]">VERBAL</span>
+            <span class="font-tecnica text-xl font-extrabold text-[#1E2436]"><strong id="top-v">5</strong><small class="text-xs text-neutral-400">/5</small></span>
+          </div>
+
+          <div class="flex items-baseline justify-between gap-4 bg-[#FAF8F5] border-2 border-[#2A324B] border-l-[7px] border-l-[#2F855A] px-4 py-1.5 min-w-[130px] shadow-[2px_2px_0px_#2A324B]">
+            <span class="font-tecnica text-xs font-extrabold tracking-wider text-[#2F855A]">MOTOR</span>
+            <span class="font-tecnica text-xl font-extrabold text-[#1E2436]"><strong id="top-m">6</strong><small class="text-xs text-neutral-400">/6</small></span>
+          </div>
+
+          <div class="flex items-baseline justify-between gap-4 bg-[#FAF8F5] border-2 border-[#2A324B] border-l-[7px] border-l-[#5B21B6] px-4 py-1.5 min-w-[125px] shadow-[2px_2px_0px_#2A324B]">
+            <span class="font-tecnica text-xs font-extrabold tracking-wider text-[#5B21B6]">GCS</span>
+            <span id="top-total" class="font-tecnica text-2xl font-extrabold text-[#1E2436]">15</span>
+          </div>
+        </div>
+
+        <h2 id="subtitulo-resumen" class="font-tecnica text-lg sm:text-xl font-extrabold tracking-wide text-[#2A324B]">
+          OCULAR 4 · VERBAL 5 · MOTOR 6
+        </h2>
+      </section>
+
+      <!-- ==========================================
+           SECCIÓN 4: CONSOLA DE PALANCAS 3D + VISOR DE PERSONAJE 3D
+           ========================================== -->
+      <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+
+        <!-- COLUMNA IZQUIERDA (5 COLS): CONSOLA FÍSICA CON PALANCAS FLUIDAS -->
+        <div class="lg:col-span-5 bg-[#5B6475] border-2 border-[#2A324B] p-4 sm:p-5 shadow-[6px_6px_0px_#2A324B] flex flex-col justify-between">
+          
+          <div class="bg-[#EAE2D0] border-2 border-[#2A324B] p-4 sm:p-5 relative flex-1 flex flex-col justify-between shadow-inner">
+            <!-- 4 Tornillos en las esquinas -->
+            <span class="w-3 h-3 rounded-full border-2 border-[#2A324B] bg-[#D5CBB8] absolute top-2.5 left-2.5"></span>
+            <span class="w-3 h-3 rounded-full border-2 border-[#2A324B] bg-[#D5CBB8] absolute top-2.5 right-2.5"></span>
+            <span class="w-3 h-3 rounded-full border-2 border-[#2A324B] bg-[#D5CBB8] absolute bottom-2.5 left-2.5"></span>
+            <span class="w-3 h-3 rounded-full border-2 border-[#2A324B] bg-[#D5CBB8] absolute bottom-2.5 right-2.5"></span>
+
+            <div class="text-center mb-2">
+              <span class="font-tecnica text-[11px] font-bold uppercase tracking-widest text-[#2A324B]">
+                🎛️ Desliza las palancas físicas hacia arriba o abajo
+              </span>
+            </div>
+
+            <!-- 3 Módulos de Palancas Hardware + Pantalla GCS -->
+            <div class="grid grid-cols-4 gap-2 sm:gap-2.5 items-end my-auto pt-2 pb-4">
+
+              <!-- PALANCA 1: OCULAR (1-4) -->
+              <div class="fader-housing border-2 border-[#2A324B] p-2 flex flex-col items-center h-[295px] justify-between relative">
+                <div class="w-full bg-[#2563EB] text-white font-tecnica text-[10px] font-extrabold text-center py-1 border border-[#1E2436]">
+                  OCULAR
+                </div>
+                
+                <div id="track-E" data-group="E" data-min="1" data-max="4" class="fader-track flex-1 w-full flex justify-between items-center px-1 my-2.5 cursor-pointer">
+                  <div class="relative left-[14px] h-full flex items-center">
+                    <div class="fader-ticks w-6 h-[92%] absolute -left-1.5 opacity-70"></div>
+                    <div class="fader-slot"></div>
+                  </div>
+
+                  <div id="knob-E" data-group="E" style="top: 4%;" class="fader-knob knob-blue absolute border-2 border-[#141824] flex flex-col items-center justify-center z-20">
+                    <div class="w-6 h-[2px] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.8)]"></div>
+                  </div>
+
+                  <div class="flex flex-col justify-between h-full py-1 z-10 ml-auto">
+                    <button data-group="E" data-val="4" class="slider-btn circulo-num w-7 h-7 rounded-full border-2 border-[#2A324B] font-tecnica text-xs font-extrabold flex items-center justify-center cursor-pointer">4</button>
+                    <button data-group="E" data-val="3" class="slider-btn circulo-num w-7 h-7 rounded-full border-2 border-[#2A324B] font-tecnica text-xs font-extrabold flex items-center justify-center cursor-pointer">3</button>
+                    <button data-group="E" data-val="2" class="slider-btn circulo-num w-7 h-7 rounded-full border-2 border-[#2A324B] font-tecnica text-xs font-extrabold flex items-center justify-center cursor-pointer">2</button>
+                    <button data-group="E" data-val="1" class="slider-btn circulo-num w-7 h-7 rounded-full border-2 border-[#2A324B] font-tecnica text-xs font-extrabold flex items-center justify-center cursor-pointer">1</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- PALANCA 2: VERBAL (1-5) -->
+              <div class="fader-housing border-2 border-[#2A324B] p-2 flex flex-col items-center h-[345px] justify-between relative">
+                <div class="w-full bg-[#D97706] text-white font-tecnica text-[10px] font-extrabold text-center py-1 border border-[#1E2436]">
+                  VERBAL
+                </div>
+                
+                <div id="track-V" data-group="V" data-min="1" data-max="5" class="fader-track flex-1 w-full flex justify-between items-center px-1 my-2.5 cursor-pointer">
+                  <div class="relative left-[14px] h-full flex items-center">
+                    <div class="fader-ticks w-6 h-[92%] absolute -left-1.5 opacity-70"></div>
+                    <div class="fader-slot"></div>
+                  </div>
+
+                  <div id="knob-V" data-group="V" style="top: 3%;" class="fader-knob knob-orange absolute border-2 border-[#141824] flex flex-col items-center justify-center z-20">
+                    <div class="w-6 h-[2px] bg-[#141824] shadow-[0_1px_0_rgba(255,255,255,0.5)]"></div>
+                  </div>
+
+                  <div class="flex flex-col justify-between h-full py-1 z-10 ml-auto">
+                    <button data-group="V" data-val="5" class="slider-btn circulo-num w-7 h-7 rounded-full border-2 border-[#2A324B] font-tecnica text-xs font-extrabold flex items-center justify-center cursor-pointer">5</button>
+                    <button data-group="V" data-val="4" class="slider-btn circulo-num w-7 h-7 rounded-full border-2 border-[#2A324B] font-tecnica text-xs font-extrabold flex items-center justify-center cursor-pointer">4</button>
+                    <button data-group="V" data-val="3" class="slider-btn circulo-num w-7 h-7 rounded-full border-2 border-[#2A324B] font-tecnica text-xs font-extrabold flex items-center justify-center cursor-pointer">3</button>
+                    <button data-group="V" data-val="2" class="slider-btn circulo-num w-7 h-7 rounded-full border-2 border-[#2A324B] font-tecnica text-xs font-extrabold flex items-center justify-center cursor-pointer">2</button>
+                    <button data-group="V" data-val="1" class="slider-btn circulo-num w-7 h-7 rounded-full border-2 border-[#2A324B] font-tecnica text-xs font-extrabold flex items-center justify-center cursor-pointer">1</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- PALANCA 3: MOTOR (1-6) -->
+              <div class="fader-housing border-2 border-[#2A324B] p-2 flex flex-col items-center h-[395px] justify-between relative">
+                <div class="w-full bg-[#059669] text-white font-tecnica text-[10px] font-extrabold text-center py-1 border border-[#1E2436]">
+                  MOTOR
+                </div>
+                
+                <div id="track-M" data-group="M" data-min="1" data-max="6" class="fader-track flex-1 w-full flex justify-between items-center px-1 my-2.5 cursor-pointer">
+                  <div class="relative left-[14px] h-full flex items-center">
+                    <div class="fader-ticks w-6 h-[92%] absolute -left-1.5 opacity-70"></div>
+                    <div class="fader-slot"></div>
+                  </div>
+
+                  <div id="knob-M" data-group="M" style="top: 2%;" class="fader-knob knob-green absolute border-2 border-[#141824] flex flex-col items-center justify-center z-20">
+                    <div class="w-6 h-[2px] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.8)]"></div>
+                  </div>
+
+                  <div class="flex flex-col justify-between h-full py-1 z-10 ml-auto">
+                    <button data-group="M" data-val="6" class="slider-btn circulo-num w-7 h-7 rounded-full border-2 border-[#2A324B] font-tecnica text-xs font-extrabold flex items-center justify-center cursor-pointer">6</button>
+                    <button data-group="M" data-val="5" class="slider-btn circulo-num w-7 h-7 rounded-full border-2 border-[#2A324B] font-tecnica text-xs font-extrabold flex items-center justify-center cursor-pointer">5</button>
+                    <button data-group="M" data-val="4" class="slider-btn circulo-num w-7 h-7 rounded-full border-2 border-[#2A324B] font-tecnica text-xs font-extrabold flex items-center justify-center cursor-pointer">4</button>
+                    <button data-group="M" data-val="3" class="slider-btn circulo-num w-7 h-7 rounded-full border-2 border-[#2A324B] font-tecnica text-xs font-extrabold flex items-center justify-center cursor-pointer">3</button>
+                    <button data-group="M" data-val="2" class="slider-btn circulo-num w-7 h-7 rounded-full border-2 border-[#2A324B] font-tecnica text-xs font-extrabold flex items-center justify-center cursor-pointer">2</button>
+                    <button data-group="M" data-val="1" class="slider-btn circulo-num w-7 h-7 rounded-full border-2 border-[#2A324B] font-tecnica text-xs font-extrabold flex items-center justify-center cursor-pointer">1</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- PANTALLA LUMINOSA GCS -->
+              <div class="flex flex-col justify-center h-[395px]">
+                <div class="fader-housing border-2 border-[#2A324B] p-2.5 text-center shadow-[3px_3px_0px_#2A324B]">
+                  <span class="font-tecnica text-xs font-extrabold text-[#2A324B] block mb-1">GCS</span>
+                  <div class="bg-[#0D1F17] border-2 border-[#1E2436] py-4 px-1 flex items-center justify-center shadow-inner">
+                    <span id="pantalla-verde-gcs" class="font-tecnica text-3xl sm:text-4xl font-extrabold text-[#4ADE80] drop-shadow-[0_0_10px_rgba(74,222,128,0.85)]">
+                      15
+                    </span>
+                  </div>
+                  <span class="font-tecnica text-[10px] font-bold text-neutral-600 block mt-1">3 a 15</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- 4 Botones Rápidos Inferiores con Ancho Proporcional (Sin desbordar texto) -->
+            <div class="border-t border-[#2A324B]/30 pt-3 flex flex-wrap sm:flex-nowrap items-stretch justify-between gap-1.5 font-tecnica text-[10px] tracking-tight">
+              <button data-preset="4,5,6" class="preset-rapido flex-auto h-9 bg-white hover:bg-[#0B1D3A] hover:text-white border-2 border-[#2A324B] px-2 font-bold flex items-center justify-center whitespace-nowrap cursor-pointer transition-colors">
+                Alerta (15)
+              </button>
+              <button data-preset="2,2,3" class="preset-rapido flex-auto h-9 bg-white hover:bg-[#0B1D3A] hover:text-white border-2 border-[#2A324B] px-2 font-bold flex items-center justify-center whitespace-nowrap cursor-pointer transition-colors">
+                Decorticación (7)
+              </button>
+              <button data-preset="1,2,2" class="preset-rapido flex-auto h-9 bg-white hover:bg-[#0B1D3A] hover:text-white border-2 border-[#2A324B] px-2 font-bold flex items-center justify-center whitespace-nowrap cursor-pointer transition-colors">
+                Descerebración (5)
+              </button>
+              <button data-preset="1,1,1" class="preset-rapido flex-auto h-9 bg-red-100 hover:bg-red-800 hover:text-white text-red-900 border-2 border-[#2A324B] px-2 font-bold flex items-center justify-center whitespace-nowrap cursor-pointer transition-colors">
+                Coma (3)
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- COLUMNA DERECHA (7 COLS): TARJETAS CENTRADAS + VISOR 3D + DIAGNÓSTICO -->
+        <div class="lg:col-span-7 border-2 border-[#2A324B] bg-[#D8DADF] shadow-[6px_6px_0px_#2A324B] flex flex-col justify-between overflow-hidden relative">
+
+          <!-- Cabecera de Estado Activo y Respuesta Verbal (Altura Fija y Centrada = Cero Saltos) -->
+          <div class="p-3.5 grid grid-cols-1 sm:grid-cols-12 gap-3 items-stretch bg-[#DFD7C4] border-b-2 border-[#2A324B] z-10">
+            
+            <!-- Tarjeta Izquierda -->
+            <div class="sm:col-span-7 bg-[#FAF8F5] border-2 border-[#2A324B] px-3.5 py-2 flex items-center gap-3.5 shadow-[3px_3px_0px_#2A324B] h-[88px]">
+              <div id="badge-numero-activo" class="w-11 h-11 shrink-0 bg-[#2563EB] border-2 border-[#2A324B] text-white font-tecnica text-2xl font-extrabold flex items-center justify-center">
+                4
+              </div>
+              <div class="flex flex-col justify-center min-w-0 flex-1">
+                <span id="categoria-activa" class="font-tecnica text-[10px] font-bold uppercase tracking-widest text-[#2563EB] block leading-none mb-1">
+                  APERTURA OCULAR (E4)
+                </span>
+                <h3 id="titulo-estado-activo" class="font-cuerpo text-sm sm:text-base font-extrabold text-[#1E2436] leading-tight truncate">
+                  ESPONTÁNEA
+                </h3>
+                <p id="subtitulo-estado-activo" class="text-[11px] text-neutral-600 leading-tight mt-0.5 line-clamp-2">
+                  Abre los ojos por sí sola, parpadea y fija la mirada.
+                </p>
+              </div>
+            </div>
+
+            <!-- Tarjeta Derecha -->
+            <div class="sm:col-span-5 bg-white border-2 border-[#2A324B] px-3.5 py-2 flex flex-col justify-center relative shadow-[3px_3px_0px_#2A324B] h-[88px]">
+              <span class="font-tecnica text-[10px] font-bold uppercase tracking-wider text-[#D97706] block mb-1 leading-none">
+                🗣️ Respuesta Verbal (V<span id="num-v-globo">5</span>):
+              </span>
+              <p id="globo-paciente" class="font-cuerpo text-xs font-bold text-[#1E2436] italic leading-snug line-clamp-2">
+                "Hola doctor, me llamo Elena. Estoy en el hospital de San Pedro Sula."
+              </p>
+            </div>
+
+          </div>
+
+          <!-- CONTENEDOR DEL MOTOR 3D STUDIO -->
+          <div id="contenedor-3d" class="relative w-full h-[410px] bg-gradient-to-b from-[#CBD0D8] via-[#B8BFC9] to-[#9FA7B4] cursor-move select-none overflow-hidden">
+            
+            <!-- Botones de Cámara 3D Flotantes -->
+            <div class="absolute top-3 left-3 z-20 flex flex-wrap gap-1.5 font-tecnica text-[10px]">
+              <button id="cam-general" type="button" class="bg-[#0B1D3A] hover:bg-[#D4AF37] text-[#FAF8F5] hover:text-[#141413] border border-[#141413] px-2.5 py-1 font-bold uppercase cursor-pointer transition-colors shadow-[2px_2px_0px_#141413]">
+                🎥 Vista Estudio 3D
+              </button>
+              <button id="cam-rostro" type="button" class="bg-[#0B1D3A] hover:bg-[#D4AF37] text-[#FAF8F5] hover:text-[#141413] border border-[#141413] px-2.5 py-1 font-bold uppercase cursor-pointer transition-colors shadow-[2px_2px_0px_#141413]">
+                👁️ Zoom Rostro / Ojos
+              </button>
+              <button id="cam-dolor" type="button" class="bg-[#0B1D3A] hover:bg-[#D4AF37] text-[#FAF8F5] hover:text-[#141413] border border-[#141413] px-2.5 py-1 font-bold uppercase cursor-pointer transition-colors shadow-[2px_2px_0px_#141413]">
+                🖐️ Zoom Mano / Uña
+              </button>
+            </div>
+
+            <div class="absolute top-3 right-3 z-20 bg-[#FAF8F5]/90 border border-[#1E2436] px-2.5 py-1 font-tecnica text-[10px] text-[#1E2436] font-bold shadow-[2px_2px_0px_#1E2436]">
+              🔄 Arrastra para rotar 3D
+            </div>
+
+            <!-- Etiqueta Flotante de Estímulo Clínico -->
+            <div id="tip-semiologico" class="hidden absolute bottom-3 left-3 z-20 bg-[#FAF8F5] border-2 border-[#2A324B] px-3 py-2 shadow-[3px_3px_0px_#141413] max-w-xs">
+              <p class="font-cuerpo text-xs font-extrabold text-[#1E2436]">
+                💡 Estímulo Doloroso Ungueal
+              </p>
+              <p class="text-[11px] text-neutral-700 leading-tight">
+                Presión sobre el lecho ungueal con bolígrafo clínico (evitar frote esternal).
+              </p>
+            </div>
+          </div>
+
+          <!-- Barra Inferior de Correlación Clínica (Altura Fija = Cero Saltos) -->
+          <div class="bg-[#FAF8F5] border-t-2 border-[#2A324B] px-4 py-3 flex flex-col justify-center min-h-[84px] z-10">
+            <div>
+              <span id="badge-interpretacion" class="font-tecnica text-xs font-extrabold uppercase px-2.5 py-0.5 border border-[#2A324B] bg-emerald-200 text-[#1E2436] inline-block mb-1">
+                TCE LEVE / CONSCIENTE (15/15 PTS)
+              </span>
+              <p id="texto-correlacion" class="text-xs text-neutral-700 leading-snug">
+                <strong>Estado actual:</strong> Ocular (espontánea), Verbal (orientada) y Motor (obedece órdenes).
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+
+    <footer class="border-t-2 border-[#1E2436] bg-[#FAF8F5] py-5 px-6 mt-10 font-tecnica text-xs text-neutral-600">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+        <span>© NEUROLAB — SIMULADOR 3D ESCALA DE GLASGOW // UNAH-VS</span>
+        <span>SAN PEDRO SULA, HONDURAS</span>
+      </div>
+    </footer>
+
+    <!-- ==========================================================
+         SCRIPT COMPLETO: SONIDO SUTIL + PALANCAS FLUIDAS + 3D
+         ========================================================== -->
+    <script is:inline>
+      const state = { E: 4, V: 5, M: 6 };
+      let ultimoModificado = 'E';
+      let sonidoHabilitado = true;
+
+      const posOcular = { 4: 4, 3: 32, 2: 60, 1: 86 };
+      const posVerbal = { 5: 3, 4: 25, 3: 47, 2: 68, 1: 88 };
+      const posMotor  = { 6: 2, 5: 19, 4: 37, 3: 55, 2: 72, 1: 89 };
+
+      const infoE = {
+        4: { tit: "ESPONTÁNEA", sub: "Abre los ojos por sí sola, parpadea y fija la mirada." },
+        3: { tit: "AL SONIDO (AL LLAMADO)", sub: "Ojos cerrados en reposo; los abre al hablarle en voz alta." },
+        2: { tit: "A LA PRESIÓN (AL DOLOR)", sub: "Solo entreabre los ojos y frunce el ceño ante presión ungueal." },
+        1: { tit: "NINGUNA RESPUESTA", sub: "Párpados completamente cerrados sin respuesta al dolor." }
+      };
+
+      const infoV = {
+        5: { tit: "ORIENTADA", sub: "Consciente de su nombre, ubicación y fecha.", frase: '"Hola doctor, me llamo Elena. Estoy en el hospital de San Pedro Sula."' },
+        4: { tit: "CONFUSA", sub: "Habla con frases completas pero está desorientada.", frase: '"¿Dónde estoy?... ¿Qué hago aquí? Quiero irme a mi casa."' },
+        3: { tit: "PALABRAS SUELTAS", sub: "Palabras inteligibles pero sin conexión.", frase: '"¡Puerta!... ¡Frío ayer!... ¡Llaves!" (Palabras incoherentes)' },
+        2: { tit: "SONIDOS INCOMPRENSIBLES", sub: "Quejidos o gemidos guturales sin articular palabras.", frase: '"Uhhhh... mmmghhh... aahhh..." (Quejidos al dolor)' },
+        1: { tit: "NINGUNA RESPUESTA", sub: "Ausencia total de fonación.", frase: '[ Silencio clínico — Paciente intubada si GCS ≤ 8 ]' }
+      };
+
+      const infoM = {
+        6: { tit: "OBEDECE ÓRDENES", sub: "Levanta la mano y mueve los dedos voluntariamente al pedírselo." },
+        5: { tit: "LOCALIZA EL DOLOR", sub: "Cruza su mano intencionalmente hacia el punto de estímulo doloroso." },
+        4: { tit: "FLEXIÓN NORMAL (RETIRADA)", sub: "Retira y flexiona el brazo rápidamente alejándose del bolígrafo." },
+        3: { tit: "DECORTICACIÓN (FLEXIÓN)", sub: "Flexión rígida de codos, muñecas y dedos sobre el pecho (Lesión sobre el Núcleo Rojo)." },
+        2: { tit: "DESCEREBRACIÓN (EXTENSIÓN)", sub: "Extensión rígida y pronación hacia afuera (Lesión de tronco bajo el Núcleo Rojo)." },
+        1: { tit: "NINGUNA (FLACIDEZ)", sub: "Atonía muscular completa; extremidades relajadas sin respuesta." }
+      };
+
+      // ==========================================================
+      // 1. CLIC ACÚSTICO SUAVE Y DISCRETO (SOLO AL ENCAJAR EN UN NÚMERO)
+      // ==========================================================
+      let audioCtx = null;
+
+      function desbloquearAudio() {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return null;
+        if (!audioCtx) {
+          audioCtx = new AudioContextClass();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        return audioCtx;
+      }
+
+      window.addEventListener('pointerdown', desbloquearAudio, { passive: true });
+
+      function sonarEncajeSuave(nivel = 3) {
+        if (!sonidoHabilitado) return;
+        const ctx = desbloquearAudio();
+        if (!ctx) return;
+
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        // Onda sinusoidal pura y corta (suave como un clic táctil de reloj/perilla fina)
+        osc.type = 'sine';
+        const freq = 240 + (nivel * 18);
+        osc.frequency.setValueAtTime(freq, now);
+        osc.frequency.exponentialRampToValueAtTime(95, now + 0.022);
+
+        // Volumen bajo y agradable (0.06)
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.022);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.025);
+      }
+
+      document.getElementById('btn-test-audio').addEventListener('click', (e) => {
+        sonidoHabilitado = !sonidoHabilitado;
+        if (sonidoHabilitado) {
+          e.currentTarget.textContent = "🔊 Sonido Suave: ACTIVO";
+          sonarEncajeSuave(4);
+        } else {
+          e.currentTarget.textContent = "🔇 Sonido: SILENCIADO";
+        }
+      });
+
+      // ==========================================================
+      // 2. CONFIGURACIÓN DEL ESTUDIO 3D (THREE.JS)
+      // ==========================================================
+      const container = document.getElementById('contenedor-3d');
+      const scene = new THREE.Scene();
+
+      const camera = new THREE.PerspectiveCamera(34, container.clientWidth / container.clientHeight, 0.1, 100);
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.08;
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      container.appendChild(renderer.domElement);
+
+      const hemiLight = new THREE.HemisphereLight(0xfff8f0, 0x64748b, 0.85);
+      hemiLight.position.set(0, 8, 0);
+      scene.add(hemiLight);
+
+      const keyLight = new THREE.DirectionalLight(0xfffaf0, 1.15);
+      keyLight.position.set(3.5, 5.5, 5.0);
+      keyLight.castShadow = true;
+      keyLight.shadow.mapSize.width = 1024;
+      keyLight.shadow.mapSize.height = 1024;
+      scene.add(keyLight);
+
+      const fillLight = new THREE.DirectionalLight(0xe0f2fe, 0.55);
+      fillLight.position.set(-4.0, 2.5, 3.0);
+      scene.add(fillLight);
+
+      const rimLight = new THREE.DirectionalLight(0xffffff, 0.45);
+      rimLight.position.set(0, 4.0, -4.0);
+      scene.add(rimLight);
+
+      const matSkin = new THREE.MeshPhysicalMaterial({ color: 0xF3B792, roughness: 0.56, clearcoat: 0.06 });
+      const matBlush = new THREE.MeshPhysicalMaterial({ color: 0xE58572, roughness: 0.6, transparent: true, opacity: 0.45 });
+      const matNails = new THREE.MeshPhysicalMaterial({ color: 0xF9D5C2, roughness: 0.3, clearcoat: 0.3 });
+      const matHair = new THREE.MeshPhysicalMaterial({ color: 0xE87A24, roughness: 0.45, clearcoat: 0.12 });
+      const matShirt = new THREE.MeshPhysicalMaterial({ color: 0xF2C14E, roughness: 0.68 });
+      const matPants = new THREE.MeshPhysicalMaterial({ color: 0x4E8098, roughness: 0.65 });
+      const matEyeDark = new THREE.MeshPhysicalMaterial({ color: 0x1A1817, roughness: 0.08, clearcoat: 1.0 });
+      const matEyeHighlight = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+      const matMouth = new THREE.MeshStandardMaterial({ color: 0x3D2622, roughness: 0.5 });
+      const matPillow = new THREE.MeshPhysicalMaterial({ color: 0xFAF8F5, roughness: 0.75 });
+      const matBed = new THREE.MeshPhysicalMaterial({ color: 0xE2E8F0, roughness: 0.8 });
+      const matDocSleeve = new THREE.MeshPhysicalMaterial({ color: 0x5B7083, roughness: 0.6 });
+      const matPenBody = new THREE.MeshStandardMaterial({ color: 0x1E293B, roughness: 0.25, metalness: 0.7 });
+      const matPenTip = new THREE.MeshStandardMaterial({ color: 0xCBD5E1, roughness: 0.2, metalness: 0.9 });
+
+      function createSmoothCapsule(rTop, rBot, len, mat, segs = 24) {
+        const group = new THREE.Group();
+        const cyl = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBot, len, segs), mat);
+        cyl.castShadow = true;
+        cyl.receiveShadow = true;
+        const topCap = new THREE.Mesh(new THREE.SphereGeometry(rTop, segs, 16), mat);
+        topCap.position.y = len / 2;
+        const botCap = new THREE.Mesh(new THREE.SphereGeometry(rBot, segs, 16), mat);
+        botCap.position.y = -len / 2;
+        group.add(cyl, topCap, botCap);
+        return group;
+      }
+
+      // Cama y Almohada
+      const envGroup = new THREE.Group();
+      scene.add(envGroup);
+
+      const mattress = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.8, 0.35), matBed);
+      mattress.position.set(0, 0.2, -0.72);
+      mattress.receiveShadow = true;
+      envGroup.add(mattress);
+
+      const pillowGeo = new THREE.SphereGeometry(1.05, 40, 32);
+      pillowGeo.scale(1.32, 0.68, 0.34);
+      const pillow = new THREE.Mesh(pillowGeo, matPillow);
+      pillow.position.set(0, 1.05, -0.38);
+      pillow.receiveShadow = true;
+      envGroup.add(pillow);
+
+      const blanketGeo = new THREE.CylinderGeometry(0.76, 0.82, 1.2, 32);
+      blanketGeo.scale(1.25, 1.0, 0.68);
+      const blanket = new THREE.Mesh(blanketGeo, matPants);
+      blanket.position.set(0, -1.05, 0.08);
+      envGroup.add(blanket);
+
+      // Paciente 3D
+      const patientRoot = new THREE.Group();
+      patientRoot.position.set(0, -0.05, 0);
+      scene.add(patientRoot);
+
+      const torsoGroup = new THREE.Group();
+      patientRoot.add(torsoGroup);
+
+      const torsoGeo = new THREE.CylinderGeometry(0.48, 0.44, 1.05, 32);
+      torsoGeo.scale(1.22, 1.0, 0.72);
+      const torsoMesh = new THREE.Mesh(torsoGeo, matShirt);
+      torsoMesh.position.set(0, 0.02, 0);
+      torsoMesh.castShadow = true;
+      torsoGroup.add(torsoMesh);
+
+      const upperChestGeo = new THREE.SphereGeometry(0.52, 32, 24);
+      upperChestGeo.scale(1.18, 0.55, 0.68);
+      const upperChest = new THREE.Mesh(upperChestGeo, matShirt);
+      upperChest.position.set(0, 0.46, 0);
+      torsoGroup.add(upperChest);
+
+      const neckCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.165, 0.19, 0.36, 24), matSkin);
+      neckCyl.position.set(0, 0.82, 0.04);
+      torsoGroup.add(neckCyl);
+
+      const headGroup = new THREE.Group();
+      headGroup.position.set(0, 1.24, 0.12);
+      torsoGroup.add(headGroup);
+
+      const headGeo = new THREE.SphereGeometry(0.43, 48, 48);
+      const posAttr = headGeo.attributes.position;
+      const v = new THREE.Vector3();
+      for (let i = 0; i < posAttr.count; i++) {
+        v.fromBufferAttribute(posAttr, i);
+        const yNorm = v.y / 0.43;
+        if (yNorm < 0) {
+          v.x *= 1.0 + Math.sin(Math.abs(yNorm) * Math.PI * 0.65) * 0.09;
+          v.y *= 0.94;
+        } else {
+          v.x *= 1.03;
+        }
+        if (v.z > 0) v.z *= 0.92;
+        posAttr.setXYZ(i, v.x, v.y, v.z);
+      }
+      headGeo.computeVertexNormals();
+
+      const headMesh = new THREE.Mesh(headGeo, matSkin);
+      headMesh.castShadow = true;
+      headGroup.add(headMesh);
+
+      const blushGeo = new THREE.SphereGeometry(0.085, 20, 16);
+      blushGeo.scale(1.2, 0.75, 0.35);
+      const blushL = new THREE.Mesh(blushGeo, matBlush);
+      blushL.position.set(0.24, -0.07, 0.34);
+      blushL.rotation.y = 0.35;
+      const blushR = new THREE.Mesh(blushGeo, matBlush);
+      blushR.position.set(-0.24, -0.07, 0.34);
+      blushR.rotation.y = -0.35;
+      headGroup.add(blushL, blushR);
+
+      const noseGeo = new THREE.SphereGeometry(0.052, 24, 20);
+      noseGeo.scale(0.88, 1.08, 1.15);
+      const noseMesh = new THREE.Mesh(noseGeo, matSkin);
+      noseMesh.position.set(0, -0.02, 0.395);
+      headGroup.add(noseMesh);
+
+      // Cabello
+      const hairGroup = new THREE.Group();
+      headGroup.add(hairGroup);
+
+      const hairCrownGeo = new THREE.SphereGeometry(0.455, 36, 28);
+      hairCrownGeo.scale(1.06, 1.02, 1.04);
+      const hairCrown = new THREE.Mesh(hairCrownGeo, matHair);
+      hairCrown.position.set(0, 0.05, -0.03);
+      hairGroup.add(hairCrown);
+
+      const bangsCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-0.36, 0.14, 0.25),
+        new THREE.Vector3(-0.12, 0.19, 0.38),
+        new THREE.Vector3(0.14, 0.24, 0.37),
+        new THREE.Vector3(0.35, 0.18, 0.24)
+      ]);
+      const bangsGeo = new THREE.TubeGeometry(bangsCurve, 28, 0.12, 16, false);
+      bangsGeo.scale(1.0, 0.85, 0.72);
+      hairGroup.add(new THREE.Mesh(bangsGeo, matHair));
+
+      function createHairLock(side) {
+        const curve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(side * 0.30, 0.26, 0.14),
+          new THREE.Vector3(side * 0.43, 0.02, 0.12),
+          new THREE.Vector3(side * 0.44, -0.26, 0.10),
+          new THREE.Vector3(side * 0.39, -0.46, 0.12)
+        ]);
+        const lockGeo = new THREE.TubeGeometry(curve, 24, 0.125, 16, false);
+        lockGeo.scale(0.82, 1.0, 1.15);
+        const lockMesh = new THREE.Mesh(lockGeo, matHair);
+        const tipCap = new THREE.Mesh(new THREE.SphereGeometry(0.10, 16, 16), matHair);
+        tipCap.position.set(side * 0.39, -0.46, 0.12);
+        tipCap.scale.set(0.85, 0.9, 1.1);
+        const g = new THREE.Group();
+        g.add(lockMesh, tipCap);
+        return g;
+      }
+      hairGroup.add(createHairLock(-1), createHairLock(1));
+
+      function createSculptedEye(xPos) {
+        const eyeAnchor = new THREE.Group();
+        eyeAnchor.position.set(xPos, 0.02, 0.375);
+
+        const openEyeGroup = new THREE.Group();
+        eyeAnchor.add(openEyeGroup);
+
+        const darkEyeGeo = new THREE.SphereGeometry(0.046, 24, 20);
+        darkEyeGeo.scale(0.92, 1.08, 0.55);
+        openEyeGroup.add(new THREE.Mesh(darkEyeGeo, matEyeDark));
+
+        const highlight = new THREE.Mesh(new THREE.SphereGeometry(0.013, 12, 12), matEyeHighlight);
+        highlight.position.set(-0.014, 0.016, 0.024);
+        openEyeGroup.add(highlight);
+
+        const upperLidGeo = new THREE.SphereGeometry(0.054, 24, 16);
+        upperLidGeo.scale(1.15, 0.45, 0.65);
+        const upperLid = new THREE.Mesh(upperLidGeo, matSkin);
+        upperLid.position.set(0, 0.055, 0.01);
+        eyeAnchor.add(upperLid);
+
+        const closedCurve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(-0.052, 0.0, 0.018),
+          new THREE.Vector3(0.0, -0.014, 0.024),
+          new THREE.Vector3(0.052, 0.0, 0.018)
+        ]);
+        const closedLash = new THREE.Mesh(new THREE.TubeGeometry(closedCurve, 16, 0.009, 10, false), matMouth);
+        closedLash.visible = false;
+        eyeAnchor.add(closedLash);
+
+        return { eyeAnchor, openEyeGroup, upperLid, closedLash };
+      }
+
+      const rightEye = createSculptedEye(-0.155);
+      const leftEye  = createSculptedEye(0.155);
+      headGroup.add(rightEye.eyeAnchor, leftEye.eyeAnchor);
+
+      function createSculptedBrow(side) {
+        const curve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(side * 0.08, 0.125, 0.37),
+          new THREE.Vector3(side * 0.155, 0.142, 0.38),
+          new THREE.Vector3(side * 0.225, 0.125, 0.36)
+        ]);
+        return new THREE.Mesh(new THREE.TubeGeometry(curve, 16, 0.018, 12, false), matHair);
+      }
+      const browR = createSculptedBrow(-1);
+      const browL = createSculptedBrow(1);
+      headGroup.add(browR, browL);
+
+      const mouthGroup = new THREE.Group();
+      mouthGroup.position.set(0, -0.145, 0.375);
+      headGroup.add(mouthGroup);
+
+      const smileCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-0.065, 0.012, 0),
+        new THREE.Vector3(0, -0.015, 0.012),
+        new THREE.Vector3(0.065, 0.012, 0)
+      ]);
+      mouthGroup.add(new THREE.Mesh(new THREE.TubeGeometry(smileCurve, 20, 0.012, 10, false), matMouth));
+
+      const iotTube = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.022, 0.022, 0.28, 16),
+        new THREE.MeshPhysicalMaterial({ color: 0x93C5FD, roughness: 0.2, transparent: true, opacity: 0.85 })
+      );
+      iotTube.position.set(0.02, -0.18, 0.46);
+      iotTube.rotation.x = Math.PI * 0.38;
+      iotTube.visible = false;
+      headGroup.add(iotTube);
+
+      function createRealHand3D(side) {
+        const wristGroup = new THREE.Group();
+        const palmMesh = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.16, 0.065), matSkin);
+        palmMesh.position.y = -0.075;
+        wristGroup.add(palmMesh);
+
+        const fingerSpecs = [
+          { x: -side * 0.054, len1: 0.068, len2: 0.055, r: 0.017 },
+          { x: -side * 0.018, len1: 0.076, len2: 0.060, r: 0.018 },
+          { x:  side * 0.018, len1: 0.070, len2: 0.056, r: 0.017 },
+          { x:  side * 0.052, len1: 0.056, len2: 0.046, r: 0.015 }
+        ];
+
+        const fingerJoints = [];
+        fingerSpecs.forEach((spec) => {
+          const proxPivot = new THREE.Group();
+          proxPivot.position.set(spec.x, -0.155, 0);
+          wristGroup.add(proxPivot);
+
+          const phalanx1 = createSmoothCapsule(spec.r, spec.r * 0.92, spec.len1, matSkin, 14);
+          phalanx1.position.y = -spec.len1 / 2;
+          proxPivot.add(phalanx1);
+
+          const distPivot = new THREE.Group();
+          distPivot.position.y = -spec.len1;
+          proxPivot.add(distPivot);
+
+          const phalanx2 = createSmoothCapsule(spec.r * 0.92, spec.r * 0.80, spec.len2, matSkin, 14);
+          phalanx2.position.y = -spec.len2 / 2;
+          distPivot.add(phalanx2);
+
+          const nail = new THREE.Mesh(new THREE.SphereGeometry(spec.r * 0.72, 10, 10), matNails);
+          nail.scale.set(0.85, 1.1, 0.35);
+          nail.position.set(0, -spec.len2 * 0.78, spec.r * 0.72);
+          distPivot.add(nail);
+
+          fingerJoints.push({ proxPivot, distPivot });
+        });
+
+        const thumbPivot = new THREE.Group();
+        thumbPivot.position.set(-side * 0.072, -0.065, 0.015);
+        thumbPivot.rotation.z = -side * 0.58;
+        wristGroup.add(thumbPivot);
+
+        const thumbPhalanx1 = createSmoothCapsule(0.021, 0.018, 0.065, matSkin, 14);
+        thumbPhalanx1.position.y = -0.032;
+        thumbPivot.add(thumbPhalanx1);
+
+        const thumbDistPivot = new THREE.Group();
+        thumbDistPivot.position.y = -0.065;
+        thumbPivot.add(thumbDistPivot);
+
+        const thumbPhalanx2 = createSmoothCapsule(0.018, 0.015, 0.052, matSkin, 14);
+        thumbPhalanx2.position.y = -0.026;
+        thumbDistPivot.add(thumbPhalanx2);
+
+        return { wristGroup, fingerJoints, thumbPivot, thumbDistPivot };
+      }
+
+      function createSculptedArm(side) {
+        const shoulderPivot = new THREE.Group();
+        shoulderPivot.position.set(side * 0.56, 0.42, 0.02);
+        torsoGroup.add(shoulderPivot);
+
+        const sleeve = createSmoothCapsule(0.145, 0.13, 0.28, matShirt, 24);
+        sleeve.position.y = -0.12;
+        shoulderPivot.add(sleeve);
+
+        const upperArm = createSmoothCapsule(0.112, 0.098, 0.38, matSkin, 24);
+        upperArm.position.y = -0.34;
+        shoulderPivot.add(upperArm);
+
+        const elbowPivot = new THREE.Group();
+        elbowPivot.position.y = -0.54;
+        shoulderPivot.add(elbowPivot);
+
+        const forearm = createSmoothCapsule(0.096, 0.074, 0.50, matSkin, 24);
+        forearm.position.y = -0.25;
+        elbowPivot.add(forearm);
+
+        const hand = createRealHand3D(side);
+        hand.wristGroup.position.y = -0.51;
+        elbowPivot.add(hand.wristGroup);
+
+        return { shoulderPivot, elbowPivot, hand };
+      }
+
+      const rightArm = createSculptedArm(-1);
+      const leftArm  = createSculptedArm(1);
+
+      const doctorGroup = new THREE.Group();
+      doctorGroup.position.set(2.2, -0.9, 1.4);
+      scene.add(doctorGroup);
+
+      const docForearm = createSmoothCapsule(0.115, 0.095, 0.65, matDocSleeve, 20);
+      docForearm.rotation.z = Math.PI * 0.38;
+      docForearm.position.set(0.36, -0.18, 0);
+      doctorGroup.add(docForearm);
+
+      const docHand = createRealHand3D(-1);
+      docHand.wristGroup.rotation.z = Math.PI * 0.38;
+      docHand.wristGroup.rotation.y = -0.4;
+      docHand.fingerJoints.forEach(fj => {
+        fj.proxPivot.rotation.x = 0.85;
+        fj.distPivot.rotation.x = 0.75;
+      });
+      doctorGroup.add(docHand.wristGroup);
+
+      const penGroup = new THREE.Group();
+      penGroup.position.set(-0.18, 0.06, 0.04);
+      penGroup.rotation.z = Math.PI * 0.43;
+      const penBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.016, 0.42, 16), matPenBody);
+      const penCone = new THREE.Mesh(new THREE.ConeGeometry(0.016, 0.06, 16), matPenTip);
+      penCone.position.y = 0.24;
+      penGroup.add(penBarrel, penCone);
+      doctorGroup.add(penGroup);
+
+      const targetPose = {
+        headRotX: 0, headRotY: 0, headRotZ: 0,
+        eyeOpenness: 1.0,
+        browTilt: 0,
+        mouthScaleY: 1.0,
+        mouthRotX: 0,
+        rShoulder: { x: -1.15, y: 0.2, z: -0.45 },
+        rElbow:    { x: -1.1, y: 0, z: 0 },
+        rWrist:    { x: 0, y: 0.2, z: 0 },
+        rCurl:     0.12,
+        lShoulder: { x: -0.35, y: -0.2, z: 0.18 },
+        lElbow:    { x: -0.85, y: 0.2, z: -0.25 },
+        lWrist:    { x: 0, y: -0.2, z: 0 },
+        lCurl:     0.22,
+        docPos:    { x: 2.3, y: -0.9, z: 1.4 }
+      };
+
+      let camTarget = new THREE.Vector3(0, 0.52, 0);
+      let camSpherical = { radius: 4.15, theta: 0, phi: 1.42 };
+      let targetCamSpherical = { radius: 4.15, theta: 0, phi: 1.42 };
+      let targetCamLook = new THREE.Vector3(0, 0.52, 0);
+
+      let isOrbiting = false;
+      let prevMouse = { x: 0, y: 0 };
+
+      container.addEventListener('pointerdown', (e) => {
+        if (e.target.tagName === 'BUTTON') return;
+        isOrbiting = true;
+        prevMouse = { x: e.clientX, y: e.clientY };
+      });
+      window.addEventListener('pointermove', (e) => {
+        if (!isOrbiting) return;
+        const dx = (e.clientX - prevMouse.x) * 0.007;
+        const dy = (e.clientY - prevMouse.y) * 0.007;
+        targetCamSpherical.theta = Math.max(-0.9, Math.min(0.9, targetCamSpherical.theta - dx));
+        targetCamSpherical.phi = Math.max(0.9, Math.min(1.65, targetCamSpherical.phi - dy));
+        prevMouse = { x: e.clientX, y: e.clientY };
+      });
+      window.addEventListener('pointerup', () => { isOrbiting = false; });
+
+      document.getElementById('cam-general').addEventListener('click', () => {
+        targetCamSpherical = { radius: 4.15, theta: 0, phi: 1.42 };
+        targetCamLook.set(0, 0.52, 0);
+      });
+      document.getElementById('cam-rostro').addEventListener('click', () => {
+        targetCamSpherical = { radius: 2.05, theta: 0, phi: 1.44 };
+        targetCamLook.set(0, 1.18, 0.15);
+      });
+      document.getElementById('cam-dolor').addEventListener('click', () => {
+        targetCamSpherical = { radius: 2.85, theta: 0.28, phi: 1.35 };
+        targetCamLook.set(0.32, -0.05, 0.35);
+      });
+
+      function calcularPostura3D(E, V, M) {
+        const total = E + V + M;
+
+        if (E === 4) { targetPose.eyeOpenness = 1.0; targetPose.browTilt = 0.0; }
+        else if (E === 3) { targetPose.eyeOpenness = 0.52; targetPose.browTilt = 0.08; }
+        else if (E === 2) { targetPose.eyeOpenness = 0.22; targetPose.browTilt = -0.26; }
+        else { targetPose.eyeOpenness = 0.0; targetPose.browTilt = 0.0; }
+
+        iotTube.visible = (total <= 8 && V === 1);
+        if (V === 5) { targetPose.mouthScaleY = 1.0; targetPose.mouthRotX = 0; }
+        else if (V === 4 || V === 3) { targetPose.mouthScaleY = 1.6; targetPose.mouthRotX = 0.3; }
+        else if (V === 2) { targetPose.mouthScaleY = 1.9; targetPose.mouthRotX = 0.8; }
+        else { targetPose.mouthScaleY = 0.35; targetPose.mouthRotX = 0; }
+
+        if (M === 6) {
+          targetPose.rShoulder = { x: -1.25, y: 0.15, z: -0.42 };
+          targetPose.rElbow    = { x: -1.15, y: 0, z: 0 };
+          targetPose.rWrist    = { x: 0.15, y: 0.3, z: 0 };
+          targetPose.rCurl     = 0.08;
+          targetPose.lShoulder = { x: -0.38, y: -0.2, z: 0.16 };
+          targetPose.lElbow    = { x: -0.85, y: 0, z: -0.28 };
+          targetPose.lWrist    = { x: 0, y: -0.2, z: 0 };
+          targetPose.lCurl     = 0.25;
+          targetPose.headRotX = 0; targetPose.headRotZ = 0;
+        } else if (M === 5) {
+          targetPose.rShoulder = { x: -0.78, y: 0.62, z: 0.52 };
+          targetPose.rElbow    = { x: -1.42, y: 0, z: 0.38 };
+          targetPose.rWrist    = { x: 0.1, y: 0, z: 0 };
+          targetPose.rCurl     = 0.35;
+          targetPose.lShoulder = { x: -0.42, y: -0.12, z: 0.15 };
+          targetPose.lElbow    = { x: -0.78, y: 0, z: -0.2 };
+          targetPose.lWrist    = { x: 0, y: 0, z: 0 };
+          targetPose.lCurl     = 0.28;
+          targetPose.headRotX = 0.06; targetPose.headRotZ = -0.06;
+        } else if (M === 4) {
+          targetPose.rShoulder = { x: -0.42, y: 0.1, z: -0.15 };
+          targetPose.rElbow    = { x: -0.82, y: 0, z: 0.2 };
+          targetPose.rWrist    = { x: 0, y: 0, z: 0 };
+          targetPose.rCurl     = 0.3;
+          targetPose.lShoulder = { x: -0.85, y: -0.32, z: 0.42 };
+          targetPose.lElbow    = { x: -1.32, y: 0, z: -0.25 };
+          targetPose.lWrist    = { x: -0.25, y: 0, z: 0 };
+          targetPose.lCurl     = 0.45;
+          targetPose.headRotX = 0.04; targetPose.headRotZ = 0.07;
+        } else if (M === 3) {
+          targetPose.rShoulder = { x: -0.58, y: 0.48, z: 0.36 };
+          targetPose.rElbow    = { x: -2.02, y: 0, z: 0.35 };
+          targetPose.rWrist    = { x: 0.85, y: 0.4, z: 0 };
+          targetPose.rCurl     = 1.38;
+          targetPose.lShoulder = { x: -0.58, y: -0.48, z: -0.36 };
+          targetPose.lElbow    = { x: -2.02, y: 0, z: -0.35 };
+          targetPose.lWrist    = { x: 0.85, y: -0.4, z: 0 };
+          targetPose.lCurl     = 1.38;
+          targetPose.headRotX = -0.10; targetPose.headRotZ = 0;
+        } else if (M === 2) {
+          targetPose.rShoulder = { x: -0.15, y: -0.85, z: -0.14 };
+          targetPose.rElbow    = { x: -0.12, y: 0, z: 0 };
+          targetPose.rWrist    = { x: -0.65, y: 0.85, z: -0.45 };
+          targetPose.rCurl     = 1.35;
+          targetPose.lShoulder = { x: -0.15, y: 0.85, z: 0.14 };
+          targetPose.lElbow    = { x: -0.12, y: 0, z: 0 };
+          targetPose.lWrist    = { x: -0.65, y: -0.85, z: 0.45 };
+          targetPose.lCurl     = 1.35;
+          targetPose.headRotX = -0.18; targetPose.headRotZ = 0;
+        } else {
+          targetPose.rShoulder = { x: 0.04, y: 0, z: -0.20 };
+          targetPose.rElbow    = { x: -0.15, y: 0, z: 0 };
+          targetPose.rWrist    = { x: 0.08, y: 0, z: 0 };
+          targetPose.rCurl     = 0.32;
+          targetPose.lShoulder = { x: 0.04, y: 0, z: 0.20 };
+          targetPose.lElbow    = { x: -0.15, y: 0, z: 0 };
+          targetPose.lWrist    = { x: 0.08, y: 0, z: 0 };
+          targetPose.lCurl     = 0.32;
+          targetPose.headRotX = 0.14; targetPose.headRotZ = 0.18;
+        }
+
+        if (E === 2 || (M <= 5 && M >= 2)) {
+          targetPose.docPos = { x: 0.78, y: -0.26, z: 0.58 };
+        } else {
+          targetPose.docPos = { x: 2.3, y: -0.9, z: 1.4 };
+        }
+      }
+
+      const clock = new THREE.Clock();
+      let currentOpenness = 1.0;
+      let currentRCurl = 0.12;
+      let currentLCurl = 0.22;
+
+      function animateHandFingers(handObj, curlAmount) {
+        handObj.fingerJoints.forEach((fj) => {
+          fj.proxPivot.rotation.x = curlAmount;
+          fj.distPivot.rotation.x = curlAmount * 1.1;
+        });
+        handObj.thumbDistPivot.rotation.x = curlAmount * 0.85;
+      }
+
+      function animate3D() {
+        requestAnimationFrame(animate3D);
+        const t = clock.getElapsedTime();
+        const lerpSpeed = 0.09;
+
+        const respRate = (state.E + state.V + state.M <= 8) ? 1.3 : 2.3;
+        torsoGroup.position.y = Math.sin(t * respRate) * 0.015;
+        torsoMesh.scale.z = 0.72 + Math.sin(t * respRate) * 0.02;
+
+        let blinkFactor = 1.0;
+        if (state.E === 4 && Math.sin(t * 1.7) > 0.965) blinkFactor = 0.0;
+
+        const desiredOpen = targetPose.eyeOpenness * blinkFactor;
+        currentOpenness = THREE.MathUtils.lerp(currentOpenness, desiredOpen, 0.22);
+
+        [rightEye, leftEye].forEach((eye) => {
+          if (currentOpenness < 0.12) {
+            eye.openEyeGroup.visible = false;
+            eye.upperLid.visible = false;
+            eye.closedLash.visible = true;
+          } else {
+            eye.openEyeGroup.visible = true;
+            eye.upperLid.visible = true;
+            eye.closedLash.visible = false;
+            eye.openEyeGroup.scale.y = Math.max(0.2, currentOpenness);
+            eye.upperLid.position.y = 0.015 + currentOpenness * 0.042;
+          }
+        });
+
+        browR.rotation.z = THREE.MathUtils.lerp(browR.rotation.z, targetPose.browTilt, lerpSpeed);
+        browL.rotation.z = THREE.MathUtils.lerp(browL.rotation.z, -targetPose.browTilt, lerpSpeed);
+        mouthGroup.scale.y = THREE.MathUtils.lerp(mouthGroup.scale.y, targetPose.mouthScaleY, lerpSpeed);
+        mouthGroup.rotation.x = THREE.MathUtils.lerp(mouthGroup.rotation.x, targetPose.mouthRotX, lerpSpeed);
+
+        const tremor = (state.M === 3 || state.M === 2) ? Math.sin(t * 42) * 0.01 : 0;
+
+        headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, targetPose.headRotX, lerpSpeed);
+        headGroup.rotation.z = THREE.MathUtils.lerp(headGroup.rotation.z, targetPose.headRotZ, lerpSpeed);
+        headGroup.rotation.y = (state.E === 4) ? Math.sin(t * 0.7) * 0.07 : THREE.MathUtils.lerp(headGroup.rotation.y, 0, lerpSpeed);
+
+        rightArm.shoulderPivot.rotation.x = THREE.MathUtils.lerp(rightArm.shoulderPivot.rotation.x, targetPose.rShoulder.x + tremor, lerpSpeed);
+        rightArm.shoulderPivot.rotation.y = THREE.MathUtils.lerp(rightArm.shoulderPivot.rotation.y, targetPose.rShoulder.y, lerpSpeed);
+        rightArm.shoulderPivot.rotation.z = THREE.MathUtils.lerp(rightArm.shoulderPivot.rotation.z, targetPose.rShoulder.z, lerpSpeed);
+        rightArm.elbowPivot.rotation.x    = THREE.MathUtils.lerp(rightArm.elbowPivot.rotation.x, targetPose.rElbow.x + tremor, lerpSpeed);
+        rightArm.elbowPivot.rotation.z    = THREE.MathUtils.lerp(rightArm.elbowPivot.rotation.z, targetPose.rElbow.z, lerpSpeed);
+        rightArm.hand.wristGroup.rotation.x = THREE.MathUtils.lerp(rightArm.hand.wristGroup.rotation.x, targetPose.rWrist.x, lerpSpeed);
+        rightArm.hand.wristGroup.rotation.y = THREE.MathUtils.lerp(rightArm.hand.wristGroup.rotation.y, targetPose.rWrist.y, lerpSpeed);
+        rightArm.hand.wristGroup.rotation.z = (state.M === 6)
+          ? Math.sin(t * 4.2) * 0.22
+          : THREE.MathUtils.lerp(rightArm.hand.wristGroup.rotation.z, targetPose.rWrist.z, lerpSpeed);
+
+        currentRCurl = THREE.MathUtils.lerp(currentRCurl, targetPose.rCurl, lerpSpeed);
+        animateHandFingers(rightArm.hand, currentRCurl);
+
+        leftArm.shoulderPivot.rotation.x = THREE.MathUtils.lerp(leftArm.shoulderPivot.rotation.x, targetPose.lShoulder.x + tremor, lerpSpeed);
+        leftArm.shoulderPivot.rotation.y = THREE.MathUtils.lerp(leftArm.shoulderPivot.rotation.y, targetPose.lShoulder.y, lerpSpeed);
+        leftArm.shoulderPivot.rotation.z = THREE.MathUtils.lerp(leftArm.shoulderPivot.rotation.z, targetPose.lShoulder.z, lerpSpeed);
+        leftArm.elbowPivot.rotation.x    = THREE.MathUtils.lerp(leftArm.elbowPivot.rotation.x, targetPose.lElbow.x + tremor, lerpSpeed);
+        leftArm.elbowPivot.rotation.z    = THREE.MathUtils.lerp(leftArm.elbowPivot.rotation.z, targetPose.lElbow.z, lerpSpeed);
+        leftArm.hand.wristGroup.rotation.x = THREE.MathUtils.lerp(leftArm.hand.wristGroup.rotation.x, targetPose.lWrist.x, lerpSpeed);
+        leftArm.hand.wristGroup.rotation.y = THREE.MathUtils.lerp(leftArm.hand.wristGroup.rotation.y, targetPose.lWrist.y, lerpSpeed);
+        leftArm.hand.wristGroup.rotation.z = THREE.MathUtils.lerp(leftArm.hand.wristGroup.rotation.z, targetPose.lWrist.z, lerpSpeed);
+
+        currentLCurl = THREE.MathUtils.lerp(currentLCurl, targetPose.lCurl, lerpSpeed);
+        animateHandFingers(leftArm.hand, currentLCurl);
+
+        doctorGroup.position.x = THREE.MathUtils.lerp(doctorGroup.position.x, targetPose.docPos.x, 0.1);
+        doctorGroup.position.y = THREE.MathUtils.lerp(doctorGroup.position.y, targetPose.docPos.y + Math.sin(t * 4.5) * 0.015, 0.1);
+        doctorGroup.position.z = THREE.MathUtils.lerp(doctorGroup.position.z, targetPose.docPos.z, 0.1);
+
+        camSpherical.radius = THREE.MathUtils.lerp(camSpherical.radius, targetCamSpherical.radius, 0.08);
+        camSpherical.theta  = THREE.MathUtils.lerp(camSpherical.theta, targetCamSpherical.theta, 0.08);
+        camSpherical.phi    = THREE.MathUtils.lerp(camSpherical.phi, targetCamSpherical.phi, 0.08);
+        camTarget.lerp(targetCamLook, 0.08);
+
+        camera.position.x = camTarget.x + camSpherical.radius * Math.sin(camSpherical.phi) * Math.sin(camSpherical.theta);
+        camera.position.y = camTarget.y + camSpherical.radius * Math.cos(camSpherical.phi);
+        camera.position.z = camTarget.z + camSpherical.radius * Math.sin(camSpherical.phi) * Math.cos(camSpherical.theta);
+        camera.lookAt(camTarget);
+
+        renderer.render(scene, camera);
+      }
+      animate3D();
+
+      window.addEventListener('resize', () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      });
+
+      // ==========================================================
+      // 3. ACTUALIZACIÓN DE INTERFAZ Y MOVIMIENTO FLUIDO DE PALANCAS
+      // ==========================================================
+      function actualizarSimulador(moverPerillas = true) {
+        const { E, V, M } = state;
+        const total = E + V + M;
+
+        if (moverPerillas) {
+          document.getElementById('knob-E').style.top = `${posOcular[E]}%`;
+          document.getElementById('knob-V').style.top = `${posVerbal[V]}%`;
+          document.getElementById('knob-M').style.top = `${posMotor[M]}%`;
+        }
+
+        document.querySelectorAll('.slider-btn').forEach(btn => {
+          const g = btn.getAttribute('data-group');
+          const v = parseInt(btn.getAttribute('data-val'));
+          const colores = { E: '#2563EB', V: '#D97706', M: '#059669' };
+          if (state[g] === v) {
+            btn.style.backgroundColor = colores[g];
+            btn.style.color = '#FFFFFF';
+          } else {
+            btn.style.backgroundColor = '#FFFFFF';
+            btn.style.color = '#2A324B';
+          }
+        });
+
+        document.getElementById('top-e').textContent = E;
+        document.getElementById('top-v').textContent = V;
+        document.getElementById('top-m').textContent = M;
+        document.getElementById('top-total').textContent = total;
+        document.getElementById('pantalla-verde-gcs').textContent = total;
+        document.getElementById('subtitulo-resumen').textContent = `OCULAR ${E} · VERBAL ${V} · MOTOR ${M}`;
+
+        const badgeNum = document.getElementById('badge-numero-activo');
+        const catActiva = document.getElementById('categoria-activa');
+        const titActivo = document.getElementById('titulo-estado-activo');
+        const subActivo = document.getElementById('subtitulo-estado-activo');
+
+        if (ultimoModificado === 'E') {
+          badgeNum.textContent = E;
+          badgeNum.style.backgroundColor = '#2563EB';
+          catActiva.textContent = `APERTURA OCULAR (E${E})`;
+          catActiva.style.color = '#2563EB';
+          titActivo.textContent = infoE[E].tit;
+          subActivo.textContent = infoE[E].sub;
+        } else if (ultimoModificado === 'V') {
+          badgeNum.textContent = V;
+          badgeNum.style.backgroundColor = '#D97706';
+          catActiva.textContent = `RESPUESTA VERBAL (V${V})`;
+          catActiva.style.color = '#D97706';
+          titActivo.textContent = infoV[V].tit;
+          subActivo.textContent = infoV[V].sub;
+        } else {
+          badgeNum.textContent = M;
+          badgeNum.style.backgroundColor = '#059669';
+          catActiva.textContent = `RESPUESTA MOTORA (M${M})`;
+          catActiva.style.color = '#059669';
+          titActivo.textContent = infoM[M].tit;
+          subActivo.textContent = infoM[M].sub;
+        }
+
+        document.getElementById('num-v-globo').textContent = V;
+        document.getElementById('globo-paciente').textContent = infoV[V].frase;
+
+        const tipSemio = document.getElementById('tip-semiologico');
+        if (E === 2 || (M <= 5 && M >= 2)) {
+          tipSemio.classList.remove('hidden');
+        } else {
+          tipSemio.classList.add('hidden');
+        }
+
+        const badgeInt = document.getElementById('badge-interpretacion');
+        const txtCorr = document.getElementById('texto-correlacion');
+
+        if (total >= 13) {
+          badgeInt.textContent = `TCE LEVE / CONSCIENTE (${total}/15 PTS)`;
+          badgeInt.className = "font-tecnica text-xs font-extrabold uppercase px-2.5 py-0.5 border border-[#2A324B] bg-emerald-200 text-[#1E2436] inline-block mb-1";
+        } else if (total >= 9) {
+          badgeInt.textContent = `TCE MODERADO / LETARGIA (${total}/15 PTS)`;
+          badgeInt.className = "font-tecnica text-xs font-extrabold uppercase px-2.5 py-0.5 border border-[#2A324B] bg-amber-200 text-[#1E2436] inline-block mb-1";
+        } else {
+          badgeInt.textContent = `🚨 TCE GRAVE / COMA (${total}/15 PTS) — INTUBACIÓN INDICADA (GCS ≤ 8)`;
+          badgeInt.className = "font-tecnica text-xs font-extrabold uppercase px-2.5 py-0.5 border border-[#2A324B] bg-red-600 text-white inline-block mb-1";
+        }
+
+        if (M === 3) {
+          txtCorr.innerHTML = "<strong>Decorticación (M3):</strong> Lesión supratentorial grave <strong>por encima del Núcleo Rojo</strong>. Flexión rígida sobre el pecho.";
+        } else if (M === 2) {
+          txtCorr.innerHTML = "<strong>Descerebración (M2):</strong> Lesión crítica de tronco <strong>por debajo del Núcleo Rojo</strong>. Hiperextensión y pronación severa.";
+        } else if (total === 3) {
+          txtCorr.innerHTML = "<strong>Coma Profundo (3/15):</strong> Abolición completa de respuestas del SRAA y flacidez corticoespinal total.";
+        } else {
+          txtCorr.innerHTML = `<strong>Estado actual:</strong> Ocular (${infoE[E].tit.toLowerCase()}), Verbal (${infoV[V].tit.toLowerCase()}) y Motor (${infoM[M].tit.toLowerCase()}).`;
+        }
+
+        calcularPostura3D(E, V, M);
+      }
+
+      // ==========================================================
+      // 4. ARRASTRE 100% FLUIDO + SONIDO SUTIL SOLO EN CADA NÚMERO
+      // ==========================================================
+      let activeDrag = null;
+
+      document.querySelectorAll('.fader-track').forEach(track => {
+        const group = track.getAttribute('data-group');
+        const maxVal = parseInt(track.getAttribute('data-max'));
+        const knob = document.getElementById(`knob-${group}`);
+
+        function procesarMovimientoPalanca(clientY, soltar = false) {
+          const rect = track.getBoundingClientRect();
+          const pad = 16;
+          let y = clientY - rect.top - pad;
+          const altoUtil = rect.height - pad * 2;
+          let ratio = Math.max(0, Math.min(1, y / altoUtil));
+
+          if (!soltar) {
+            // Movimiento 100% fluido siguiendo el cursor sin trabas
+            knob.style.top = `${ratio * 84 + 3}%`;
+          }
+
+          // Detectar si llegó a un nuevo número
+          const valorCalculado = Math.round(maxVal - ratio * (maxVal - 1));
+          if (state[group] !== valorCalculado) {
+            state[group] = valorCalculado;
+            ultimoModificado = group;
+            sonarEncajeSuave(valorCalculado); // 🔊 Clic suave solo al colocarse en un número
+            actualizarSimulador(false);
+          }
+
+          if (soltar) {
+            knob.classList.remove('dragging');
+            actualizarSimulador(true); // Deslizamiento suave final al número
+          }
+        }
+
+        track.addEventListener('pointerdown', (e) => {
+          desbloquearAudio();
+          if (e.target.classList.contains('slider-btn')) return;
+          activeDrag = { group, procesarMovimientoPalanca };
+          knob.classList.add('dragging');
+          track.setPointerCapture(e.pointerId);
+          procesarMovimientoPalanca(e.clientY, false);
+        });
+
+        track.addEventListener('pointermove', (e) => {
+          if (!activeDrag || activeDrag.group !== group) return;
+          procesarMovimientoPalanca(e.clientY, false);
+        });
+
+        track.addEventListener('pointerup', (e) => {
+          if (!activeDrag || activeDrag.group !== group) return;
+          procesarMovimientoPalanca(e.clientY, true);
+          activeDrag = null;
+        });
+      });
+
+      document.querySelectorAll('.slider-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          desbloquearAudio();
+          const g = btn.getAttribute('data-group');
+          const v = parseInt(btn.getAttribute('data-val'));
+          if (state[g] !== v) sonarEncajeSuave(v);
+          state[g] = v;
+          ultimoModificado = g;
+          actualizarSimulador(true);
+        });
+      });
+
+      document.querySelectorAll('.preset-rapido').forEach(btn => {
+        btn.addEventListener('click', () => {
+          desbloquearAudio();
+          const [e, v, m] = btn.getAttribute('data-preset').split(',').map(Number);
+          sonarEncajeSuave(m);
+          state.E = e; state.V = v; state.M = m;
+          ultimoModificado = 'M';
+          actualizarSimulador(true);
+        });
+      });
+
+      actualizarSimulador(true);
+    </script>
+  </body>
+</html>

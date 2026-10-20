@@ -1,168 +1,322 @@
 ---
-import Visor3D from '../components/Visor3D.astro';
+// === CONFIGURACIÓN INICIAL ===
+// Nota: Quitamos el Visor3D de aquí porque solo irá dentro de las páginas de "Prácticas"
 import '../styles/global.css';
 ---
 <html lang="es">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Atlas y Laboratorio de Neuroanatomía | UNAH-VS</title>
+    <!-- ✏️ EDITA EL TÍTULO DE LA PESTAÑA DEL NAVEGADOR AQUÍ -->
+    <title>NeuroLab | UNAH-VS</title>
     
-    <!-- Cargamos tipografías editoriales y técnicas de Google Fonts -->
+    <!-- === CONFIGURACIÓN DE FUENTES (GOOGLE FONTS) === -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     
     <script is:inline src="https://cdn.tailwindcss.com"></script>
+    
     <style>
+      /* ✏️ AQUÍ PUEDES CAMBIAR LOS NOMBRES DE LAS FUENTES CUANDO QUIERAS */
       .font-editorial { font-family: 'Cormorant Garamond', Georgia, serif; }
       .font-cuerpo { font-family: 'Plus Jakarta Sans', sans-serif; }
       .font-tecnica { font-family: 'JetBrains Mono', monospace; }
+
+      /* === ANIMACIÓN DE PANTALLA DE CARGA (INTRO NEUROLAB) === */
+      @keyframes barraCarga {
+        0% { width: 0%; }
+        100% { width: 100%; }
+      }
+      @keyframes desvanecerIntro {
+        0%, 80% { opacity: 1; visibility: visible; }
+        100% { opacity: 0; visibility: hidden; pointer-events: none; }
+      }
+      @keyframes pulsoLogo {
+        0% { transform: scale(0.95); opacity: 0; }
+        40% { transform: scale(1); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      .pantalla-intro {
+        animation: desvanecerIntro 2.2s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+      }
+      .logo-animado {
+        animation: pulsoLogo 1.5s ease-out forwards;
+      }
+      .progreso-linea {
+        animation: barraCarga 1.6s ease-in-out forwards;
+      }
     </style>
   </head>
 
-  <body class="bg-[#FAF8F5] text-[#141413] font-cuerpo min-h-screen selection:bg-[#0B1D3A] selection:text-white">
+  <body class="bg-[#FAF8F5] text-[#141413] font-cuerpo min-h-screen flex flex-col justify-between selection:bg-[#0B1D3A] selection:text-white">
     
-    <!-- Franja superior institucional (UNAH) -->
-    <div class="w-full bg-[#0B1D3A] text-[#FAF8F5] border-b border-[#141413] px-6 py-2">
-      <div class="max-w-7xl mx-auto flex justify-between items-center font-tecnica text-[11px] tracking-widest uppercase">
-        <span>Universidad Nacional Autónoma de Honduras // Valle de Sula</span>
-        <span class="text-[#D4AF37]">Departamento de Ciencias Básicas de la Salud</span>
+    <!-- ==========================================
+         SECCIÓN 1: PANTALLA DE CARGA ANIMADA
+         ========================================== -->
+    <div class="pantalla-intro fixed inset-0 z-50 bg-[#0B1D3A] flex flex-col items-center justify-center p-6 border-8 border-[#141413]">
+      <div class="logo-animado flex flex-col items-center max-w-md w-full text-center">
+        <!-- Logo de NeuroLab en grande como protagonista -->
+        <img 
+          src="/logo-neurolab.png" 
+          alt="Logo NeuroLab" 
+          class="h-32 md:h-40 w-auto object-contain mb-6"
+          onerror="this.style.display='none'" 
+        />
+        <!-- ✏️ EDITA EL TEXTO DE LA ANIMACIÓN DE CARGA AQUÍ -->
+        <h2 class="font-editorial text-3xl md:text-4xl text-[#FAF8F5] font-bold tracking-wide mb-2">
+          NEUROLAB
+        </h2>
+        <p class="font-tecnica text-[11px] uppercase tracking-[0.25em] text-[#D4AF37] mb-6">
+          Laboratorio de Neuroanatomía // UNAH-VS
+        </p>
+        
+        <!-- Barra de progreso arquitectónica -->
+        <div class="w-64 h-[2px] bg-[#FAF8F5]/20 overflow-hidden">
+          <div class="progreso-linea h-full bg-[#D4AF37]"></div>
+        </div>
+        <span class="font-tecnica text-[10px] text-[#FAF8F5]/60 uppercase tracking-widest mt-3">
+          Inicializando entorno académico...
+        </span>
       </div>
     </div>
 
-    <!-- Cabecera Principal con espacio para tus Logos -->
-    <header class="border-b border-[#141413]">
-      <div class="max-w-7xl mx-auto px-6 py-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        
-        <!-- Bloque de Logos e Identidad -->
-        <div class="flex items-center gap-5">
-          <!-- LOGO 1: Pon tu imagen en public/logo-unah.png -->
-          <img 
-            src="/logo-unah.png" 
-            alt="Escudo UNAH" 
-            class="h-16 w-auto object-contain"
-            onerror="this.style.display='none'" 
-          />
-          
-          <!-- Línea divisoria vertical -->
-          <div class="h-12 w-[1px] bg-[#141413]/30 hidden sm:block"></div>
-
-          <!-- LOGO 2: Pon tu imagen en public/logo-neurolab.png -->
-          <img 
-            src="/logo-neurolab.png" 
-            alt="Logo NeuroLab" 
-            class="h-14 w-auto object-contain"
-            onerror="this.style.display='none'" 
-          />
-
-          <div>
-            <p class="font-tecnica text-xs uppercase tracking-[0.2em] text-[#B8860B] font-medium">
-              Plataforma Docente & Atlas Digital
-            </p>
-            <h1 class="font-editorial text-4xl md:text-5xl font-bold tracking-tight text-[#0B1D3A] leading-none mt-1">
-              Laboratorio de Neuroanatomía
-            </h1>
+    <div>
+      <!-- ==========================================
+           SECCIÓN 2: FRANJA SUPERIOR (UNAH SECUNDARIO)
+           ========================================== -->
+      <div class="w-full bg-[#0B1D3A] text-[#FAF8F5] border-b border-[#141413] px-6 py-2">
+        <div class="max-w-7xl mx-auto flex justify-between items-center font-tecnica text-[11px] tracking-widest uppercase">
+          <!-- ✏️ EDITA EL TEXTO INSTITUCIONAL SUPERIOR AQUÍ -->
+          <span>Universidad Nacional Autónoma de Honduras // Valle de Sula</span>
+          <div class="flex items-center gap-3">
+            <span class="text-[#D4AF37] hidden sm:inline">Ciencias Básicas de la Salud</span>
+            <!-- Logo de la UNAH más discreto en la barra institucional -->
+            <img 
+              src="/logo-unah.png" 
+              alt="UNAH" 
+              class="h-6 w-auto object-contain"
+              onerror="this.style.display='none'" 
+            />
           </div>
         </div>
-
-        <!-- Ficha técnica derecha (Sustituye a los típicos botones redondos) -->
-        <div class="border-l-2 border-[#0B1D3A] pl-4 font-tecnica text-xs space-y-1 text-neutral-600">
-          <div><strong class="text-[#141413]">SEDE:</strong> UNAH-VS (San Pedro Sula)</div>
-          <div><strong class="text-[#141413]">SISTEMA:</strong> NEUROLAB // V.1.0</div>
-        </div>
-
       </div>
-    </header>
 
-    <!-- Sección de Apertura (Estilo HistoLab pero con cuadrícula arquitectónica) -->
-    <main class="max-w-7xl mx-auto px-6 py-12">
-      
-      <!-- Cuadrícula de introducción dividida por líneas rectas -->
-      <section class="grid grid-cols-1 lg:grid-cols-12 border border-[#141413] mb-16 bg-white">
+      <!-- ==========================================
+           SECCIÓN 3: CABECERA CON ÉNFASIS EN NEUROLAB
+           ========================================== -->
+      <header class="border-b border-[#141413] bg-[#FAF8F5]">
+        <div class="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          
+          <!-- Bloque Principal: Logo NeuroLab grande + Título -->
+          <div class="flex items-center gap-6">
+            <img 
+              src="/logo-neurolab.png" 
+              alt="Logo NeuroLab" 
+              class="h-20 md:h-24 w-auto object-contain"
+              onerror="this.style.display='none'" 
+            />
+            <div>
+              <!-- ✏️ EDITA EL SUBTÍTULO Y TÍTULO PRINCIPAL AQUÍ -->
+              <p class="font-tecnica text-xs uppercase tracking-[0.2em] text-[#B8860B] font-semibold">
+                Plataforma Interactiva & Atlas Digital
+              </p>
+              <h1 class="font-editorial text-4xl md:text-6xl font-bold tracking-tight text-[#0B1D3A] leading-none mt-1">
+                NeuroLab UNAH-VS
+              </h1>
+            </div>
+          </div>
+
+          <!-- Sello secundario derecho -->
+          <div class="border-l-2 border-[#0B1D3A] pl-4 font-tecnica text-xs space-y-1 text-neutral-600 hidden lg:block">
+            <!-- ✏️ EDITA LOS DATOS DE LA FICHA DERECHA AQUÍ -->
+            <div><strong class="text-[#141413]">UNIDAD:</strong> NEUROANATOMÍA</div>
+            <div><strong class="text-[#141413]">SEDE:</strong> SAN PEDRO SULA</div>
+          </div>
+
+        </div>
+
+        <!-- ==========================================
+             SECCIÓN 4: MENÚ DE NAVEGACIÓN (5 SECCIONES)
+             ========================================== -->
+        <!-- ==========================================
+             SECCIÓN 4: MENÚ DE NAVEGACIÓN (CON DESPLEGABLE DE 8 SIMULADORES)
+             ========================================== -->
+        <nav class="border-t border-[#141413] bg-white relative z-40">
+          <div class="max-w-7xl mx-auto px-6">
+            <ul class="grid grid-cols-2 sm:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-[#141413] border-x border-[#141413] font-tecnica text-xs uppercase tracking-widest">
+              <li>
+                <a href="/practicas" class="block py-4 px-4 text-center hover:bg-[#0B1D3A] hover:text-[#FAF8F5] transition-colors font-semibold">
+                  01. Prácticas
+                </a>
+              </li>
+              <li>
+                <a href="/portal" class="block py-4 px-4 text-center hover:bg-[#0B1D3A] hover:text-[#FAF8F5] transition-colors font-semibold">
+                  02. Portal
+                </a>
+              </li>
+              
+              <!-- MENÚ DESPLEGABLE DE SIMULADORES -->
+              <li class="relative group">
+                <button type="button" class="w-full py-4 px-4 text-center bg-[#FAF8F5] group-hover:bg-[#0B1D3A] group-hover:text-[#D4AF37] transition-colors font-bold uppercase tracking-widest flex items-center justify-center gap-2 cursor-pointer">
+                  <span>03. Simuladores</span>
+                  <span class="text-[10px]">▼</span>
+                </button>
+                
+                <!-- Lista de los 8 Simuladores (Aparece al pasar el cursor) -->
+                <div class="hidden group-hover:block absolute left-0 top-full w-72 sm:w-80 bg-[#FAF8F5] border-2 border-[#141413] shadow-[6px_6px_0px_#141413] z-50">
+                  <div class="bg-[#0B1D3A] text-[#D4AF37] px-3 py-2 text-[10px] border-b border-[#141413] font-bold">
+                    // SELECCIONE MÓDULO INTERACTIVO
+                  </div>
+                  <ul class="divide-y divide-[#141413] text-[11px] text-left">
+                    <li>
+                      <a href="/simuladores/glasgow" class="flex justify-between items-center px-4 py-3 bg-white hover:bg-[#0B1D3A] hover:text-white transition-colors font-bold text-[#0B1D3A]">
+                        <span>01. Escala de Glasgow</span>
+                        <span class="bg-[#D4AF37] text-[#141413] px-1.5 py-0.5 text-[9px] font-bold">ACTIVO</span>
+                      </a>
+                    </li>
+                    <li>
+                      <a href="/simuladores/four" class="flex justify-between items-center px-4 py-3 hover:bg-[#0B1D3A] hover:text-white transition-colors">
+                        <span>02. Escala de FOUR</span>
+                        <span class="text-[9px] text-neutral-400">PRÓX.</span>
+                      </a>
+                    </li>
+                    <li>
+                      <a href="/simuladores/marcha" class="flex justify-between items-center px-4 py-3 hover:bg-[#0B1D3A] hover:text-white transition-colors">
+                        <span>03. Simulador de Marcha</span>
+                        <span class="text-[9px] text-neutral-400">PRÓX.</span>
+                      </a>
+                    </li>
+                    <li>
+                      <a href="/simuladores/despolarizacion" class="flex justify-between items-center px-4 py-3 hover:bg-[#0B1D3A] hover:text-white transition-colors">
+                        <span>04. Despolarización Neuronal</span>
+                        <span class="text-[9px] text-neutral-400">PRÓX.</span>
+                      </a>
+                    </li>
+                    <li>
+                      <a href="/simuladores/sinapsis" class="flex justify-between items-center px-4 py-3 hover:bg-[#0B1D3A] hover:text-white transition-colors">
+                        <span>05. Sinapsis Química</span>
+                        <span class="text-[9px] text-neutral-400">PRÓX.</span>
+                      </a>
+                    </li>
+                    <li>
+                      <a href="/simuladores/latido-cardiaco" class="flex justify-between items-center px-4 py-3 hover:bg-[#0B1D3A] hover:text-white transition-colors">
+                        <span>06. Latido Cardíaco</span>
+                        <span class="text-[9px] text-neutral-400">PRÓX.</span>
+                      </a>
+                    </li>
+                    <li>
+                      <a href="/simuladores/maniobras" class="flex justify-between items-center px-4 py-3 hover:bg-[#0B1D3A] hover:text-white transition-colors">
+                        <span>07. Maniobras Semiológicas</span>
+                        <span class="text-[9px] text-neutral-400">PRÓX.</span>
+                      </a>
+                    </li>
+                    <li>
+                      <a href="/simuladores/afectaciones-opticas" class="flex justify-between items-center px-4 py-3 hover:bg-[#0B1D3A] hover:text-white transition-colors">
+                        <span>08. Afectaciones Ópticas</span>
+                        <span class="text-[9px] text-neutral-400">PRÓX.</span>
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </li>
+
+              <li>
+                <a href="/libros" class="block py-4 px-4 text-center hover:bg-[#0B1D3A] hover:text-[#FAF8F5] transition-colors font-semibold">
+                  04. Libros
+                </a>
+              </li>
+              <li class="col-span-2 sm:col-span-1">
+                <a href="/calendario" class="block py-4 px-4 text-center hover:bg-[#0B1D3A] hover:text-[#FAF8F5] transition-colors font-semibold">
+                  05. Calendario
+                </a>
+              </li>
+            </ul>
+          </div>
+        </nav>
+      </header>
+
+      <!-- ==========================================
+           SECCIÓN 5: CONTENIDO DE LA PORTADA
+           ========================================== -->
+      <main class="max-w-7xl mx-auto px-6 py-12">
         
-        <!-- Columna izquierda: Título y Propósito -->
-        <div class="lg:col-span-7 p-8 md:p-12 border-b lg:border-b-0 lg:border-r border-[#141413] flex flex-col justify-between">
-          <div>
-            <div class="inline-block border border-[#141413] px-3 py-1 font-tecnica text-xs uppercase tracking-widest mb-6 bg-[#FAF8F5]">
-              Unidad de Estudio Morfológico
-            </div>
-            <h2 class="font-editorial text-4xl md:text-6xl font-bold text-[#141413] leading-[1.05] mb-6">
-              Atlas Interactivo del Sistema Nervioso Humano.
-            </h2>
-            <p class="text-base md:text-lg text-neutral-700 leading-relaxed font-normal">
-              Bienvenido al repositorio visual y práctico del Laboratorio de Neuroanatomía de la UNAH-VS. Este espacio ha sido diseñado como material complementario de alta precisión para el estudio tridimensional de especímenes anatómicos, correlación clínica, simuladores de vías nerviosas y seguimiento académico.
-            </p>
-          </div>
-
-          <div class="mt-10 pt-6 border-t border-neutral-300 flex flex-wrap gap-8 font-tecnica text-xs uppercase tracking-wider">
+        <section class="grid grid-cols-1 lg:grid-cols-12 border border-[#141413] bg-white">
+          
+          <!-- Columna izquierda: Bienvenida -->
+          <div class="lg:col-span-8 p-8 md:p-12 border-b lg:border-b-0 lg:border-r border-[#141413] flex flex-col justify-between">
             <div>
-              <span class="block text-2xl font-editorial font-bold text-[#0B1D3A] normal-case">Modelos 3D</span>
-              <span>Especímenes Reales</span>
+              <div class="inline-block border border-[#141413] px-3 py-1 font-tecnica text-xs uppercase tracking-widest mb-6 bg-[#FAF8F5]">
+                <!-- ✏️ EDITA LA ETIQUETA PEQUEÑA AQUÍ -->
+                Laboratorio de Neuroanatomía
+              </div>
+              
+              <!-- ✏️ EDITA EL TÍTULO CENTRAL DE BIENVENIDA AQUÍ -->
+              <h2 class="font-editorial text-4xl md:text-5xl font-bold text-[#141413] leading-[1.1] mb-6">
+                Estudio morfológico y funcional del sistema nervioso.
+              </h2>
+              
+              <!-- ✏️ EDITA EL PÁRRAFO DE BIENVENIDA AQUÍ (Más corto y directo) -->
+              <p class="text-base md:text-lg text-neutral-700 leading-relaxed">
+                Bienvenido a la plataforma oficial de apoyo docente. Selecciona una sección en el menú superior para acceder a las guías y modelos 3D de cada práctica, consultar tu progreso en el portal de notas o entrenar en los simuladores interactivos.
+              </p>
             </div>
+
+            <!-- Resumen inferior de módulos -->
+            <div class="mt-10 pt-6 border-t border-neutral-300 grid grid-cols-1 sm:grid-cols-3 gap-6 font-tecnica text-xs">
+              <div>
+                <span class="block text-xl font-editorial font-bold text-[#0B1D3A]">Prácticas y 3D</span>
+                <span class="text-neutral-600">Especímenes por unidad</span>
+              </div>
+              <div>
+                <span class="block text-xl font-editorial font-bold text-[#0B1D3A]">Simuladores</span>
+                <span class="text-neutral-600">Evaluación interactiva</span>
+              </div>
+              <div>
+                <span class="block text-xl font-editorial font-bold text-[#0B1D3A]">Portal Estudiantil</span>
+                <span class="text-neutral-600">Consulta de calificaciones</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Columna derecha: Panel lateral azul -->
+          <div class="lg:col-span-4 p-8 md:p-12 bg-[#0B1D3A] text-[#FAF8F5] flex flex-col justify-between">
             <div>
-              <span class="block text-2xl font-editorial font-bold text-[#0B1D3A] normal-case">Simuladores</span>
-              <span>Práctica Interactiva</span>
+              <span class="font-tecnica text-xs uppercase tracking-widest text-[#D4AF37] block mb-4">
+                <!-- ✏️ EDITA EL SUBTÍTULO DEL PANEL AZUL AQUÍ -->
+                // Acceso Rápido
+              </span>
+              <!-- ✏️ EDITA EL TÍTULO DEL PANEL AZUL AQUÍ -->
+              <h3 class="font-editorial italic text-3xl mb-4 text-white">
+                Instrucciones de ingreso
+              </h3>
+              <!-- ✏️ EDITA EL TEXTO DEL PANEL AZUL AQUÍ -->
+              <p class="text-sm text-neutral-300 leading-relaxed mb-6">
+                Utiliza el menú numerado para navegar entre las unidades temáticas del laboratorio, revisar la bibliografía recomendada o verificar las fechas de evaluación en el calendario académico.
+              </p>
             </div>
-            <div>
-              <span class="block text-2xl font-editorial font-bold text-[#0B1D3A] normal-case">Portal</span>
-              <span>Registro de Calificaciones</span>
+
+            <div class="border border-[#D4AF37]/40 p-4 bg-[#071326] font-tecnica text-xs text-neutral-300">
+              <!-- ✏️ EDITA EL AVISO INFERIOR AQUÍ -->
+              <p class="text-[#D4AF37] uppercase mb-1">Aviso Académico:</p>
+              Material de uso exclusivo para los estudiantes cursantes del laboratorio en la UNAH-VS.
             </div>
           </div>
-        </div>
 
-        <!-- Columna derecha: Nota metodológica / Bienvenida -->
-        <div class="lg:col-span-5 p-8 md:p-12 bg-[#0B1D3A] text-[#FAF8F5] flex flex-col justify-between">
-          <div>
-            <span class="font-tecnica text-xs uppercase tracking-widest text-[#D4AF37] block mb-4">
-              // Guía de Utilización
-            </span>
-            <h3 class="font-editorial italic text-3xl mb-4 text-white">
-              Observación macroscópica y correlación funcional
-            </h3>
-            <p class="text-sm text-neutral-300 leading-relaxed mb-6">
-              Cada módulo integra reconstrucciones fotogramétricas de preparaciones cadavéricas reales junto con esquemas limpios de estudio. Utilice los controles del visor para inspeccionar el origen aparente de los nervios craneales y la configuración externa del encéfalo.
-            </p>
-          </div>
+        </section>
 
-          <div class="border border-[#D4AF37]/40 p-4 bg-[#071326] font-tecnica text-xs text-neutral-300">
-            <p class="text-[#D4AF37] uppercase mb-1">Aviso Académico:</p>
-            El material contenido en esta plataforma corresponde al programa oficial del laboratorio.
-          </div>
-        </div>
+      </main>
+    </div>
 
-      </section>
-
-      <!-- Sección de Lámina 3D Destacada -->
-      <section class="mb-16">
-        <div class="flex flex-col md:flex-row md:items-end justify-between mb-6 pb-3 border-b-2 border-[#141413]">
-          <div>
-            <span class="font-tecnica text-xs uppercase tracking-widest text-[#B8860B]">
-              Espécimen de Demostración
-            </span>
-            <h2 class="font-editorial text-3xl md:text-4xl font-bold text-[#141413] mt-1">
-              Configuración Externa del Tronco Encefálico y Cerebelo
-            </h2>
-          </div>
-          <p class="font-tecnica text-xs text-neutral-600 mt-2 md:mt-0">
-            PREPARACIÓN ANATÓMICA // ANOTACIONES CLÍNICAS ACTIVAS
-          </p>
-        </div>
-
-        <Visor3D 
-          codigoLamina="LÁMINA 01"
-          titulo="Tronco Encefálico y Nervios Craneales (Vista Ventrolateral)" 
-          urlSketchfab="https://sketchfab.com/models/bc588bead4e14d899da6bb246d6fd699/embed" 
-        />
-      </section>
-
-    </main>
-
-    <!-- Pie de página sobrio -->
-    <footer class="border-t border-[#141413] bg-white py-8 px-6 font-tecnica text-xs text-neutral-600">
+    <!-- ==========================================
+         SECCIÓN 6: PIE DE PÁGINA
+         ========================================== -->
+    <footer class="border-t border-[#141413] bg-white py-6 px-6 font-tecnica text-xs text-neutral-600">
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-        <span>© LABORATORIO DE NEUROANATOMÍA — UNAH VALLE DE SULA</span>
-        <span>CIENCIAS DE LA SALUD // SAN PEDRO SULA, HONDURAS</span>
+        <!-- ✏️ EDITA EL PIE DE PÁGINA AQUÍ -->
+        <span>© NEUROLABVS — TODOS LOS DERECHOS RESERVADOS</span>
+		<span>Desarrollo y Diseño por Gabriel Espinoza</span>
+        <span>SAN PEDRO SULA, HONDURAS</span>
       </div>
     </footer>
 
