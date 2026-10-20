@@ -1,20 +1,32 @@
 ---
 import Visor3D from '../components/Visor3D.astro';
+import '../styles/global.css';
 ---
 <html lang="es">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NeuroLab UNAH-VS</title>
+    <!-- Respaldo directo con el atributo is:inline para que Astro no lo bloquee -->
+    <script is:inline src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body class="bg-slate-50 text-slate-900 p-8 font-sans">
-    <div class="max-w-5xl mx-auto">
-      <h1 class="text-4xl font-bold mb-4 text-indigo-900">NeuroLab UNAH-VS</h1>
-      <p class="mb-8 text-lg text-slate-600">Herramienta de apoyo complementaria - Práctica de prueba.</p>
+  <body class="bg-slate-100 text-slate-900 p-8 font-sans min-h-screen">
+    <div class="max-w-5xl mx-auto bg-white p-8 rounded-2xl shadow-md border border-slate-200">
+      
+      <header class="mb-8 border-b border-slate-200 pb-4">
+        <h1 class="text-4xl font-extrabold text-indigo-950 tracking-tight">NeuroLab UNAH-VS</h1>
+        <p class="mt-2 text-lg text-slate-600">Plataforma interactiva de apoyo al Laboratorio de Neuroanatomía</p>
+      </header>
 
-      <Visor3D 
-        titulo="Cráneo de prueba" 
-        urlSketchfab="https://sketchfab.com/models/bc588bead4e14d899da6bb246d6fd699/embed" 
-      />
+      <main>
+        <h2 class="text-2xl font-bold text-slate-800 mb-4">Práctica 1: Tronco Encefálico y Nervios Craneales</h2>
+        
+        <Visor3D 
+          titulo="Tronco Encefálico" 
+          urlSketchfab="https://sketchfab.com/models/bc588bead4e14d899da6bb246d6fd699/embed" 
+        />
+      </main>
+
     </div>
   </body>
 </html>
