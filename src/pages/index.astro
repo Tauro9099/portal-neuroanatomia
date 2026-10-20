@@ -6,27 +6,165 @@ import '../styles/global.css';
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NeuroLab UNAH-VS</title>
-    <!-- Respaldo directo con el atributo is:inline para que Astro no lo bloquee -->
+    <title>Atlas y Laboratorio de Neuroanatomía | UNAH-VS</title>
+    
+    <!-- Cargamos tipografías editoriales y técnicas de Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    
     <script is:inline src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .font-editorial { font-family: 'Cormorant Garamond', Georgia, serif; }
+      .font-cuerpo { font-family: 'Plus Jakarta Sans', sans-serif; }
+      .font-tecnica { font-family: 'JetBrains Mono', monospace; }
+    </style>
   </head>
-  <body class="bg-slate-100 text-slate-900 p-8 font-sans min-h-screen">
-    <div class="max-w-5xl mx-auto bg-white p-8 rounded-2xl shadow-md border border-slate-200">
-      
-      <header class="mb-8 border-b border-slate-200 pb-4">
-        <h1 class="text-4xl font-extrabold text-indigo-950 tracking-tight">NeuroLab UNAH-VS</h1>
-        <p class="mt-2 text-lg text-slate-600">Plataforma interactiva de apoyo al Laboratorio de Neuroanatomía</p>
-      </header>
 
-      <main>
-        <h2 class="text-2xl font-bold text-slate-800 mb-4">Práctica 1: Tronco Encefálico y Nervios Craneales</h2>
+  <body class="bg-[#FAF8F5] text-[#141413] font-cuerpo min-h-screen selection:bg-[#0B1D3A] selection:text-white">
+    
+    <!-- Franja superior institucional (UNAH) -->
+    <div class="w-full bg-[#0B1D3A] text-[#FAF8F5] border-b border-[#141413] px-6 py-2">
+      <div class="max-w-7xl mx-auto flex justify-between items-center font-tecnica text-[11px] tracking-widest uppercase">
+        <span>Universidad Nacional Autónoma de Honduras // Valle de Sula</span>
+        <span class="text-[#D4AF37]">Departamento de Ciencias Básicas de la Salud</span>
+      </div>
+    </div>
+
+    <!-- Cabecera Principal con espacio para tus Logos -->
+    <header class="border-b border-[#141413]">
+      <div class="max-w-7xl mx-auto px-6 py-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         
+        <!-- Bloque de Logos e Identidad -->
+        <div class="flex items-center gap-5">
+          <!-- LOGO 1: Pon tu imagen en public/logo-unah.png -->
+          <img 
+            src="/logo-unah.png" 
+            alt="Escudo UNAH" 
+            class="h-16 w-auto object-contain"
+            onerror="this.style.display='none'" 
+          />
+          
+          <!-- Línea divisoria vertical -->
+          <div class="h-12 w-[1px] bg-[#141413]/30 hidden sm:block"></div>
+
+          <!-- LOGO 2: Pon tu imagen en public/logo-neurolab.png -->
+          <img 
+            src="/logo-neurolab.png" 
+            alt="Logo NeuroLab" 
+            class="h-14 w-auto object-contain"
+            onerror="this.style.display='none'" 
+          />
+
+          <div>
+            <p class="font-tecnica text-xs uppercase tracking-[0.2em] text-[#B8860B] font-medium">
+              Plataforma Docente & Atlas Digital
+            </p>
+            <h1 class="font-editorial text-4xl md:text-5xl font-bold tracking-tight text-[#0B1D3A] leading-none mt-1">
+              Laboratorio de Neuroanatomía
+            </h1>
+          </div>
+        </div>
+
+        <!-- Ficha técnica derecha (Sustituye a los típicos botones redondos) -->
+        <div class="border-l-2 border-[#0B1D3A] pl-4 font-tecnica text-xs space-y-1 text-neutral-600">
+          <div><strong class="text-[#141413]">SEDE:</strong> UNAH-VS (San Pedro Sula)</div>
+          <div><strong class="text-[#141413]">SISTEMA:</strong> NEUROLAB // V.1.0</div>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- Sección de Apertura (Estilo HistoLab pero con cuadrícula arquitectónica) -->
+    <main class="max-w-7xl mx-auto px-6 py-12">
+      
+      <!-- Cuadrícula de introducción dividida por líneas rectas -->
+      <section class="grid grid-cols-1 lg:grid-cols-12 border border-[#141413] mb-16 bg-white">
+        
+        <!-- Columna izquierda: Título y Propósito -->
+        <div class="lg:col-span-7 p-8 md:p-12 border-b lg:border-b-0 lg:border-r border-[#141413] flex flex-col justify-between">
+          <div>
+            <div class="inline-block border border-[#141413] px-3 py-1 font-tecnica text-xs uppercase tracking-widest mb-6 bg-[#FAF8F5]">
+              Unidad de Estudio Morfológico
+            </div>
+            <h2 class="font-editorial text-4xl md:text-6xl font-bold text-[#141413] leading-[1.05] mb-6">
+              Atlas Interactivo del Sistema Nervioso Humano.
+            </h2>
+            <p class="text-base md:text-lg text-neutral-700 leading-relaxed font-normal">
+              Bienvenido al repositorio visual y práctico del Laboratorio de Neuroanatomía de la UNAH-VS. Este espacio ha sido diseñado como material complementario de alta precisión para el estudio tridimensional de especímenes anatómicos, correlación clínica, simuladores de vías nerviosas y seguimiento académico.
+            </p>
+          </div>
+
+          <div class="mt-10 pt-6 border-t border-neutral-300 flex flex-wrap gap-8 font-tecnica text-xs uppercase tracking-wider">
+            <div>
+              <span class="block text-2xl font-editorial font-bold text-[#0B1D3A] normal-case">Modelos 3D</span>
+              <span>Especímenes Reales</span>
+            </div>
+            <div>
+              <span class="block text-2xl font-editorial font-bold text-[#0B1D3A] normal-case">Simuladores</span>
+              <span>Práctica Interactiva</span>
+            </div>
+            <div>
+              <span class="block text-2xl font-editorial font-bold text-[#0B1D3A] normal-case">Portal</span>
+              <span>Registro de Calificaciones</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Columna derecha: Nota metodológica / Bienvenida -->
+        <div class="lg:col-span-5 p-8 md:p-12 bg-[#0B1D3A] text-[#FAF8F5] flex flex-col justify-between">
+          <div>
+            <span class="font-tecnica text-xs uppercase tracking-widest text-[#D4AF37] block mb-4">
+              // Guía de Utilización
+            </span>
+            <h3 class="font-editorial italic text-3xl mb-4 text-white">
+              Observación macroscópica y correlación funcional
+            </h3>
+            <p class="text-sm text-neutral-300 leading-relaxed mb-6">
+              Cada módulo integra reconstrucciones fotogramétricas de preparaciones cadavéricas reales junto con esquemas limpios de estudio. Utilice los controles del visor para inspeccionar el origen aparente de los nervios craneales y la configuración externa del encéfalo.
+            </p>
+          </div>
+
+          <div class="border border-[#D4AF37]/40 p-4 bg-[#071326] font-tecnica text-xs text-neutral-300">
+            <p class="text-[#D4AF37] uppercase mb-1">Aviso Académico:</p>
+            El material contenido en esta plataforma corresponde al programa oficial del laboratorio.
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Sección de Lámina 3D Destacada -->
+      <section class="mb-16">
+        <div class="flex flex-col md:flex-row md:items-end justify-between mb-6 pb-3 border-b-2 border-[#141413]">
+          <div>
+            <span class="font-tecnica text-xs uppercase tracking-widest text-[#B8860B]">
+              Espécimen de Demostración
+            </span>
+            <h2 class="font-editorial text-3xl md:text-4xl font-bold text-[#141413] mt-1">
+              Configuración Externa del Tronco Encefálico y Cerebelo
+            </h2>
+          </div>
+          <p class="font-tecnica text-xs text-neutral-600 mt-2 md:mt-0">
+            PREPARACIÓN ANATÓMICA // ANOTACIONES CLÍNICAS ACTIVAS
+          </p>
+        </div>
+
         <Visor3D 
-          titulo="Tronco Encefálico" 
+          codigoLamina="LÁMINA 01"
+          titulo="Tronco Encefálico y Nervios Craneales (Vista Ventrolateral)" 
           urlSketchfab="https://sketchfab.com/models/bc588bead4e14d899da6bb246d6fd699/embed" 
         />
-      </main>
+      </section>
 
-    </div>
+    </main>
+
+    <!-- Pie de página sobrio -->
+    <footer class="border-t border-[#141413] bg-white py-8 px-6 font-tecnica text-xs text-neutral-600">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+        <span>© LABORATORIO DE NEUROANATOMÍA — UNAH VALLE DE SULA</span>
+        <span>CIENCIAS DE LA SALUD // SAN PEDRO SULA, HONDURAS</span>
+      </div>
+    </footer>
+
   </body>
 </html>
